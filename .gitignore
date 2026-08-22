@@ -1,0 +1,14 @@
+# 個人の検証用動画（ソースコードと無関係、約1.1GB）
+実験結果動画/
+
+# 開発関連の一般的な除外
+node_modules/
+.env
+.env.*
+*.log
+.DS_Store
+Thumbs.db
+
+# 機密情報（APIキー等）を書き出す可能性のあるローカル設定ファイル
+*.local
+secrets.json

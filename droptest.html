@@ -1,0 +1,81 @@
+<!doctype html>
+<html lang="ja">
+<head>
+<meta charset="utf-8">
+<title>ドラッグ&ドロップ診断ページ</title>
+<style>
+  body{font-family:system-ui,sans-serif;background:#101119;color:#f4f2ec;margin:0;padding:20px;display:flex;flex-direction:column;gap:14px;height:100vh;box-sizing:border-box;}
+  h1{font-size:16px;margin:0;}
+  #zone{
+    flex:0 0 200px;border:3px dashed #33353f;border-radius:14px;
+    display:flex;align-items:center;justify-content:center;font-size:15px;color:#8d8f9c;
+    transition:border-color .15s ease, background .15s ease;
+  }
+  #zone.over{border-color:#1fb8ab;background:rgba(31,184,171,.08);color:#1fb8ab;}
+  #log{flex:1;overflow-y:auto;font-family:ui-monospace,Consolas,monospace;font-size:12px;line-height:1.7;white-space:pre-wrap;background:#1b1d27;border-radius:10px;padding:12px;}
+  #preview{display:flex;gap:10px;flex-wrap:wrap;}
+  #preview img{max-height:120px;border-radius:6px;border:1px solid #33353f;}
+</style>
+</head>
+<body>
+<h1>🧪 ドラッグ&ドロップ診断ページ — ここにサムネイルを落としてください</h1>
+<div id="zone">ここにドロップ</div>
+<div id="preview"></div>
+<div id="log">待機中… ドラッグがこのウィンドウに届くと、ここにイベントが記録されます。</div>
+<script>
+(function(){
+  const zone = document.getElementById('zone');
+  const log = document.getElementById('log');
+  const preview = document.getElementById('preview');
+  let firstEvent = true;
+  function add(msg){
+    if(firstEvent){ log.textContent=''; firstEvent=false; }
+    log.textContent += new Date().toLocaleTimeString() + '  ' + msg + '\n';
+    log.scrollTop = log.scrollHeight;
+  }
+  let enterLogged = false;
+  window.addEventListener('dragenter', (e)=>{
+    e.preventDefault();
+    if(!enterLogged){
+      add('dragenter: types=[' + Array.from(e.dataTransfer.types).join(', ') + ']');
+      enterLogged = true;
+    }
+    zone.classList.add('over');
+  });
+  window.addEventListener('dragover', (e)=>{
+    e.preventDefault();
+    e.dataTransfer.dropEffect = 'copy';
+  });
+  window.addEventListener('dragleave', (e)=>{
+    if(e.relatedTarget === null){ zone.classList.remove('over'); enterLogged=false; }
+  });
+  window.addEventListener('drop', (e)=>{
+    e.preventDefault();
+    zone.classList.remove('over');
+    enterLogged = false;
+    const dt = e.dataTransfer;
+    add('drop: types=[' + Array.from(dt.types).join(', ') + '] files=' + dt.files.length);
+    Array.from(dt.files).forEach(f=>{
+      add('  file: ' + f.name + ' (' + f.type + ', ' + Math.round(f.size/1024) + 'KB)');
+      const img = document.createElement('img');
+      img.src = URL.createObjectURL(f);
+      preview.appendChild(img);
+    });
+    const html = dt.getData('text/html');
+    if(html){
+      add('  text/html: ' + Math.round(html.length/1024) + 'KB');
+      const m = html.match(/src="(data:image\/[^"]+)"/);
+      if(m){
+        add('  → data URL画像を検出。プレビュー表示します');
+        const img = document.createElement('img');
+        img.src = m[1];
+        preview.appendChild(img);
+      }
+    }
+    const text = dt.getData('text/plain');
+    if(text) add('  text/plain: ' + text.slice(0,100));
+  });
+})();
+</script>
+</body>
+</html>
