@@ -148,25 +148,90 @@
     display:flex;align-items:center;justify-content:center;padding:0;
   }
   .settings-btn:hover{color:var(--text-hi);}
-  .settings-panel{
-    position:absolute;top:calc(100% + 6px);right:0;
-    background:var(--panel-2);border:1px solid var(--hairline);border-radius:12px;
-    padding:14px;width:320px;z-index:50;
-    display:none;box-shadow:0 8px 24px rgba(0,0,0,.5);
+  .settings-overlay{
+    position:fixed;inset:0;z-index:90;
+    background:rgba(10,11,16,.88);
+    display:flex;align-items:flex-start;justify-content:center;
+    opacity:0;pointer-events:none;transition:opacity .25s ease;
+    padding:24px 16px;overflow-y:auto;
   }
-  .settings-panel.open{display:block;}
-  .settings-panel label{font-size:11px;color:var(--text-lo);display:block;margin-bottom:6px;letter-spacing:.04em;}
-  .settings-panel input{
-    width:100%;padding:7px 10px;border-radius:8px;
-    border:1px solid var(--hairline);background:var(--ink);color:var(--text-hi);font-size:12px;
+  .settings-overlay.show{opacity:1;pointer-events:auto;}
+  .settings-modal{
+    background:var(--panel-2);border:1px solid var(--hairline);border-radius:14px;
+    padding:24px 20px;max-width:520px;width:100%;margin:auto;
+    display:flex;flex-direction:column;gap:0;
   }
-  .settings-panel input:focus{outline:none;border-color:var(--accent-2);}
+  .settings-modal-header{display:flex;align-items:center;justify-content:space-between;margin-bottom:18px;}
+  .settings-modal-header h2{font-size:17px;font-weight:700;margin:0;color:var(--text-hi);}
+  .settings-modal-close{
+    width:32px;height:32px;border-radius:50%;border:1px solid var(--hairline);
+    background:var(--panel);color:var(--text-lo);font-size:18px;cursor:pointer;
+    display:flex;align-items:center;justify-content:center;padding:0;flex-shrink:0;
+  }
+  .settings-modal-close:hover{color:var(--text-hi);}
+  .settings-section{margin-bottom:20px;}
+  .settings-section:last-child{margin-bottom:0;}
+  .settings-section h3{font-size:15px;font-weight:700;margin:0 0 8px;color:var(--text-hi);}
+  .settings-desc{
+    font-size:13px;line-height:1.75;color:var(--text-hi);margin-bottom:12px;
+    line-break:strict;text-wrap:pretty;
+  }
+  .settings-steps{
+    background:rgba(26,35,126,.15);border:1px solid rgba(26,35,126,.3);border-radius:10px;
+    padding:14px 16px;margin-bottom:10px;
+  }
+  .settings-steps-title{font-size:13px;font-weight:700;color:#7986cb;margin-bottom:8px;}
+  .settings-step{display:flex;gap:6px;margin-bottom:4px;font-size:13px;line-height:1.65;color:var(--text-hi);}
+  .settings-step-num{font-weight:700;color:#7986cb;flex-shrink:0;min-width:20px;text-align:right;}
+  .settings-step-link{
+    display:inline-block;color:#64b5f6;text-decoration:underline;font-size:13px;
+    margin:2px 0 4px 26px;word-break:break-all;
+  }
+  .settings-step-link:hover{color:#90caf9;}
+  .settings-warn{
+    background:rgba(191,54,12,.12);border:1px solid rgba(191,54,12,.3);border-radius:10px;
+    padding:12px 14px;margin-bottom:12px;font-size:13px;font-weight:700;line-height:1.65;
+    color:#ffab91;
+  }
+  .settings-key-row{display:flex;align-items:center;gap:8px;margin-bottom:6px;}
+  .settings-key-label{font-size:13px;color:var(--text-lo);flex-shrink:0;}
+  .settings-key-input{
+    flex:1;padding:8px 10px;border-radius:8px;
+    border:1px solid var(--hairline);background:var(--ink);color:var(--text-hi);font-size:13px;
+    font-family:ui-monospace,"SF Mono","JetBrains Mono",Menlo,Consolas,monospace;
+  }
+  .settings-key-input:focus{outline:none;border-color:var(--accent-2);}
+  .settings-show-toggle{
+    display:flex;align-items:center;gap:4px;cursor:pointer;flex-shrink:0;
+    font-size:12px;color:var(--text-lo);user-select:none;
+  }
+  .settings-show-toggle input{margin:0;cursor:pointer;}
+  .settings-safety{
+    font-size:12px;line-height:1.6;color:var(--text-lo);
+    background:var(--panel);border-radius:8px;padding:10px 12px;margin:10px 0;
+  }
+  .settings-msg{
+    font-size:13px;font-weight:700;margin:8px 0 4px;min-height:20px;
+    line-height:1.5;
+  }
+  .settings-msg.error{color:#ef5350;}
+  .settings-msg.success{color:#66bb6a;}
   .settings-actions{display:flex;gap:8px;margin-top:10px;}
   .settings-actions button{
-    flex:1;padding:7px 10px;border-radius:8px;border:none;font-weight:700;font-size:12px;cursor:pointer;
+    padding:9px 14px;border-radius:8px;border:none;font-weight:700;font-size:13px;cursor:pointer;
+    white-space:nowrap;
   }
   .save-key{background:var(--accent-2);color:#04211e;}
   .clear-key{background:var(--panel);color:var(--text-lo);border:1px solid var(--hairline) !important;}
+  .test-key{background:#1a237e;color:#c5cae9;border:1px solid rgba(26,35,126,.5) !important;}
+  .test-key:disabled{opacity:.5;cursor:default;}
+  .settings-sep{border:none;border-top:1px solid var(--hairline);margin:16px 0;}
+  .settings-sub-label{font-size:12px;color:var(--text-lo);display:block;margin-bottom:6px;}
+  .settings-sub-input{
+    width:100%;padding:7px 10px;border-radius:8px;
+    border:1px solid var(--hairline);background:var(--ink);color:var(--text-hi);font-size:12px;
+  }
+  .settings-sub-input:focus{outline:none;border-color:var(--accent-2);}
   .chan-icon{overflow:hidden;}
   .chan-icon img{width:100%;height:100%;border-radius:50%;object-fit:cover;display:block;}
 
@@ -487,22 +552,6 @@
   <span class="share-status" id="shareStatus"><span class="dot"></span>画面共有中 <button class="stop-share" id="stopShareBtn">停止</button></span>
   <div class="settings-wrap">
     <button class="settings-btn" id="settingsBtn" title="設定">⚙</button>
-    <div class="settings-panel" id="settingsPanel">
-      <label>YouTube Data API v3 キー</label>
-      <input id="apiKeyInput" type="password" placeholder="APIキーを入力">
-      <div class="settings-actions">
-        <button class="save-key" id="saveApiKey">保存</button>
-        <button class="clear-key" id="clearApiKey">クリア</button>
-      </div>
-      <div style="margin-top:12px;border-top:1px solid var(--hairline);padding-top:12px;">
-        <label>Anthropic APIキー（字幕要約用）</label>
-        <input id="anthropicKeyInput" type="password" placeholder="sk-ant-...">
-        <div class="settings-actions">
-          <button class="save-key" id="saveAnthropicKey">保存</button>
-          <button class="clear-key" id="clearAnthropicKey">クリア</button>
-        </div>
-      </div>
-    </div>
   </div>
 </header>
 <div class="status-line" id="statusLine"></div>
@@ -651,6 +700,66 @@
     <div class="summary-actions">
       <button class="summary-copy" id="summaryCopyBtn">コピー</button>
       <button class="summary-close" id="summaryCloseBtn">閉じる</button>
+    </div>
+  </div>
+</div>
+
+<div class="settings-overlay" id="settingsOverlay">
+  <div class="settings-modal">
+    <div class="settings-modal-header">
+      <h2>設定</h2>
+      <button class="settings-modal-close" id="settingsClose" title="閉じる">&times;</button>
+    </div>
+
+    <div class="settings-section">
+      <h3>Anthropic APIキー（字幕要約に必要）</h3>
+      <div class="settings-desc">
+        字幕要約機能では、Anthropic社のAI「Claude（クロード）」が字幕テキストを読み取り、要点をまとめます。いわばClaudeはこのアプリの要約係です。<br><br>
+        Claudeに作業をお願いするには「APIキー」が必要です。APIキーとは、Claudeを使うための会員証のようなもので、あなた専用の長い文字列です。以下の手順で取得して、下の入力欄に貼り付けてください。<br><br>
+        <span style="color:var(--text-lo)">※ 字幕要約のたびにAI利用料が少額かかります（目安：1回の要約で約0.5〜2円）。料金はAnthropic社に直接支払う形になります。</span>
+      </div>
+
+      <div class="settings-steps">
+        <div class="settings-steps-title">取得手順</div>
+        <div class="settings-step"><span class="settings-step-num">1.</span><span>下のアドレスをブラウザで開きます：</span></div>
+        <a class="settings-step-link" href="https://console.anthropic.com/" target="_blank" rel="noopener">https://console.anthropic.com/</a>
+        <div class="settings-step"><span class="settings-step-num">2.</span><span>アカウントを作ってログインします（Googleアカウントでもログインできます）</span></div>
+        <div class="settings-step"><span class="settings-step-num">3.</span><span>画面上部の「API keys」を押し、「Create Key」ボタンを押します</span></div>
+        <div class="settings-step"><span class="settings-step-num">4.</span><span>名前の欄には何を入力してもかまいません（空欄のままでもOK）。「Create Key」を押します</span></div>
+        <div class="settings-step"><span class="settings-step-num">5.</span><span>表示された文字列（sk-ant-... で始まる長い文字列）をコピーします</span></div>
+        <div class="settings-step"><span class="settings-step-num">6.</span><span>コピーした文字列を下の入力欄に貼り付けて「保存」を押します。貼り付けたら、1で開いたページは閉じてOKです</span></div>
+      </div>
+
+      <div class="settings-warn">⚠ 鍵の文字列は作成した直後の1回しか表示されません。表示されたら、すぐにコピーしてください。画面を閉じると二度と見られないのでご注意ください。</div>
+
+      <div class="settings-key-row">
+        <span class="settings-key-label">APIキー：</span>
+        <input id="anthropicKeyInput" class="settings-key-input" type="password" placeholder="sk-ant-..." autocomplete="off" spellcheck="false">
+        <label class="settings-show-toggle"><input type="checkbox" id="anthropicKeyShow">表示</label>
+      </div>
+
+      <div class="settings-safety">🔒 入力したAPIキーは、このブラウザの中だけに保存されます。外部に送信されることはありません（要約を生成するときだけ、Anthropic社のサーバーに安全に送信されます）。</div>
+
+      <div class="settings-msg" id="anthropicMsg"></div>
+
+      <div class="settings-actions">
+        <button class="save-key" id="saveAnthropicKey">保存</button>
+        <button class="test-key" id="testAnthropicKey">接続テスト</button>
+        <button class="clear-key" id="clearAnthropicKey">クリア</button>
+      </div>
+    </div>
+
+    <hr class="settings-sep">
+
+    <div class="settings-section">
+      <h3>YouTube Data API v3 キー（任意）</h3>
+      <div class="settings-desc" style="margin-bottom:8px;">チャンネルアイコンの取得に使います。入力しなくてもアプリは正常に使えます。</div>
+      <label class="settings-sub-label">APIキー：</label>
+      <input id="apiKeyInput" class="settings-sub-input" type="password" placeholder="AIza...">
+      <div class="settings-actions">
+        <button class="save-key" id="saveApiKey">保存</button>
+        <button class="clear-key" id="clearApiKey">クリア</button>
+      </div>
     </div>
   </div>
 </div>
@@ -808,47 +917,112 @@
 
   // settings panel
   const settingsBtn = document.getElementById('settingsBtn');
-  const settingsPanel = document.getElementById('settingsPanel');
+  const settingsOverlay = document.getElementById('settingsOverlay');
   const apiKeyInput = document.getElementById('apiKeyInput');
-  // Anthropic API key management
   const ANTHROPIC_KEY_KEY = 'stAnthropicApiKey';
   function getAnthropicKey(){ return localStorage.getItem(ANTHROPIC_KEY_KEY) || ''; }
   function setAnthropicKey(key){ if(key) localStorage.setItem(ANTHROPIC_KEY_KEY, key); else localStorage.removeItem(ANTHROPIC_KEY_KEY); }
   const anthropicKeyInput = document.getElementById('anthropicKeyInput');
+  const anthropicKeyShow = document.getElementById('anthropicKeyShow');
+  const anthropicMsg = document.getElementById('anthropicMsg');
 
-  settingsBtn.addEventListener('click', (e)=>{
-    e.stopPropagation();
-    settingsPanel.classList.toggle('open');
-    if(settingsPanel.classList.contains('open')){
-      apiKeyInput.value = getApiKey();
-      anthropicKeyInput.value = getAnthropicKey();
+  function openSettings(){
+    apiKeyInput.value = getApiKey();
+    anthropicKeyInput.value = getAnthropicKey();
+    anthropicKeyShow.checked = false;
+    anthropicKeyInput.type = 'password';
+    anthropicMsg.textContent = '';
+    anthropicMsg.className = 'settings-msg';
+    settingsOverlay.classList.add('show');
+  }
+  function closeSettings(){ settingsOverlay.classList.remove('show'); }
+
+  settingsBtn.addEventListener('click', openSettings);
+  document.getElementById('settingsClose').addEventListener('click', closeSettings);
+  settingsOverlay.addEventListener('click', (e)=>{ if(e.target === settingsOverlay) closeSettings(); });
+
+  anthropicKeyShow.addEventListener('change', ()=>{
+    anthropicKeyInput.type = anthropicKeyShow.checked ? 'text' : 'password';
+  });
+
+  function showAnthropicMsg(text, isError){
+    anthropicMsg.textContent = text;
+    anthropicMsg.className = 'settings-msg ' + (isError ? 'error' : 'success');
+  }
+
+  document.getElementById('saveAnthropicKey').addEventListener('click', ()=>{
+    const key = anthropicKeyInput.value.trim();
+    if(!key){
+      showAnthropicMsg('APIキーを入力してください。このキーがないと字幕要約を利用できません。', true);
+      return;
+    }
+    if(!key.startsWith('sk-ant-')){
+      showAnthropicMsg('APIキーの形式が正しくないようです。sk-ant- で始まる文字列を貼り付けてください。', true);
+      return;
+    }
+    setAnthropicKey(key);
+    showAnthropicMsg('保存しました', false);
+    showToast('Anthropic APIキーを保存しました');
+  });
+
+  document.getElementById('clearAnthropicKey').addEventListener('click', ()=>{
+    setAnthropicKey('');
+    anthropicKeyInput.value = '';
+    anthropicMsg.textContent = '';
+    anthropicMsg.className = 'settings-msg';
+    showToast('Anthropic APIキーをクリアしました');
+  });
+
+  document.getElementById('testAnthropicKey').addEventListener('click', async function(){
+    const key = anthropicKeyInput.value.trim();
+    if(!key){
+      showAnthropicMsg('先にAPIキーを入力してください。', true);
+      return;
+    }
+    this.disabled = true;
+    this.textContent = 'テスト中…';
+    anthropicMsg.textContent = '';
+    anthropicMsg.className = 'settings-msg';
+    try{
+      const resp = await fetch('https://api.anthropic.com/v1/messages', {
+        method:'POST',
+        headers:{
+          'Content-Type':'application/json',
+          'x-api-key': key,
+          'anthropic-version':'2023-06-01',
+          'anthropic-dangerous-direct-browser-access':'true'
+        },
+        body: JSON.stringify({ model:'claude-haiku-4-5', max_tokens:1, messages:[{role:'user',content:'ping'}] })
+      });
+      if(resp.ok){
+        showAnthropicMsg('接続成功！ このAPIキーは正常に動作しています。', false);
+      } else {
+        const data = await resp.json().catch(()=>({}));
+        if(resp.status === 401){
+          showAnthropicMsg('APIキーが正しくありません。もう一度確認してください。', true);
+        } else if(resp.status === 400 && data.error && data.error.message && data.error.message.includes('credit')){
+          showAnthropicMsg('APIキーは有効ですが、クレジット残高がありません。Anthropicコンソールでクレジットを追加してください。', true);
+        } else {
+          showAnthropicMsg('エラーが発生しました（' + resp.status + '）。しばらくしてからもう一度お試しください。', true);
+        }
+      }
+    } catch(e){
+      showAnthropicMsg('接続できませんでした。インターネット接続を確認してください。', true);
+    } finally {
+      this.disabled = false;
+      this.textContent = '接続テスト';
     }
   });
-  document.addEventListener('click', (e)=>{
-    if(!settingsPanel.contains(e.target) && e.target !== settingsBtn) settingsPanel.classList.remove('open');
-  });
+
   document.getElementById('saveApiKey').addEventListener('click', ()=>{
     setApiKey(apiKeyInput.value.trim());
-    settingsPanel.classList.remove('open');
-    showToast('APIキーを保存しました');
+    showToast('YouTube APIキーを保存しました');
     fetchMissingThumbs();
   });
   document.getElementById('clearApiKey').addEventListener('click', ()=>{
     setApiKey('');
     apiKeyInput.value = '';
-    settingsPanel.classList.remove('open');
-    showToast('APIキーをクリアしました');
-  });
-  document.getElementById('saveAnthropicKey').addEventListener('click', ()=>{
-    setAnthropicKey(anthropicKeyInput.value.trim());
-    settingsPanel.classList.remove('open');
-    showToast('Anthropic APIキーを保存しました');
-  });
-  document.getElementById('clearAnthropicKey').addEventListener('click', ()=>{
-    setAnthropicKey('');
-    anthropicKeyInput.value = '';
-    settingsPanel.classList.remove('open');
-    showToast('Anthropic APIキーをクリアしました');
+    showToast('YouTube APIキーをクリアしました');
   });
 
   // ---------------- mode management (YouTube / ローカル動画) ----------------
