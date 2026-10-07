@@ -207,6 +207,11 @@
     padding:12px 14px;margin-bottom:12px;font-size:13px;font-weight:700;line-height:1.65;
     color:#ffab91;
   }
+  .settings-highlight{
+    background:rgba(100,181,246,.1);border:2px solid rgba(100,181,246,.5);border-radius:10px;
+    padding:14px 16px;margin-bottom:10px;
+  }
+  .settings-highlight-title{font-size:13px;font-weight:700;color:#90caf9;margin-bottom:8px;}
   .settings-key-row{display:flex;align-items:center;gap:8px;margin-bottom:6px;}
   .settings-key-label{font-size:13px;color:var(--text-lo);flex-shrink:0;}
   .settings-key-input{
@@ -799,7 +804,7 @@
       </div>
 
       <div class="settings-steps">
-        <div class="settings-steps-title">取得手順</div>
+        <div class="settings-steps-title">取得手順（全部で7ステップ。いちばん大事なのは手順4の「有効にする」です）</div>
         <div class="settings-step"><span class="settings-step-num">1.</span><span>下のアドレスをブラウザで開きます：</span></div>
         <a class="settings-step-link" href="https://console.cloud.google.com/" target="_blank" rel="noopener">https://console.cloud.google.com/</a>
         <div class="settings-step"><span class="settings-step-num">2.</span><span>Googleアカウントでログインします（普段お使いのGoogleアカウントでかまいません）</span></div>
@@ -808,10 +813,23 @@
         <div class="settings-step"><span class="settings-step-num">　</span><span>名前は何でもかまいません。入力して「作成」を押します</span></div>
         <div class="settings-step"><span class="settings-step-num">　</span><span>作成には数十秒かかることがあります。完了したら、同じボタンをもう一度押して、作ったプロジェクトが選ばれていることを確認します</span></div>
         <div class="settings-step"><span class="settings-step-num">　</span><span style="color:var(--text-lo);">※ すでにGoogle Cloudのプロジェクトをお持ちの場合は、新しく作らず、そのプロジェクトを使っても大丈夫です</span></div>
-        <div class="settings-step"><span class="settings-step-num">4.</span><span>左上のメニュー（≡）から「APIとサービス」→「ライブラリ」を開き、「YouTube Data API v3」を検索して選び、「有効にする」を押します</span></div>
+      </div>
+
+      <div class="settings-highlight">
+        <div class="settings-highlight-title">④ 「YouTube Data API v3」を有効にします（ここが一番大事です）</div>
+        <div class="settings-step"><span class="settings-step-num">・</span><span>左上のメニュー（≡）から「APIとサービス」→「ライブラリ」を開きます</span></div>
+        <div class="settings-step"><span class="settings-step-num">・</span><span>検索欄に「YouTube Data API v3」と入力し、表示された項目を選びます</span></div>
+        <div class="settings-step"><span class="settings-step-num">・</span><span>青い「有効にする」ボタンを押します</span></div>
+        <div class="settings-step"><span class="settings-step-num">・</span><span>少し待つと、ボタンが「管理」に変わります。これが「APIが有効になった」というしるしです。この表示に変わったことを確かめてから、次の手順に進んでください</span></div>
+        <div class="settings-step"><span class="settings-step-num">⚠</span><span><b>ここを飛ばすと</b>、次のキー作成の手順で「APIの制限の選択」のプルダウンが空のままになり、先に進めなくなります</span></div>
+      </div>
+
+      <div class="settings-steps">
         <div class="settings-step"><span class="settings-step-num">5.</span><span>左のメニューから「APIとサービス」→「認証情報」を開き、上部の「認証情報を作成」ボタンを押して「API キー」を選びます</span></div>
+        <div class="settings-step"><span class="settings-step-num">　</span><span style="color:var(--text-lo);">※ 入力の途中で画面が消えてしまっても、やり直しは問題ありません。もう一度同じ手順をたどればOKです</span></div>
         <div class="settings-step"><span class="settings-step-num">6.</span><span>表示された文字列（AIzaで始まる文字列）をコピーして、下の入力欄に貼り付けます</span></div>
-        <div class="settings-step"><span class="settings-step-num">7.</span><span>（推奨・安全のため）作成したキーの「キーを制限」を押し、「APIの制限」で「キーを制限」を選んで「YouTube Data API v3」だけにチェックを入れて保存します。これで、万一この鍵が漏れても他のサービスには使われません</span></div>
+        <div class="settings-step"><span class="settings-step-num">7.</span><span>（推奨・安全のため）作成したキーの「キーを制限」を押します。「APIの制限」は<b>必須の項目</b>（*印が付いています）なので、「キーを制限」を選び、プルダウンを押して「YouTube Data API v3」にチェックを入れ、「OK」を押してから保存します。これで、万一この鍵が漏れても他のサービスには使われません</span></div>
+        <div class="settings-step"><span class="settings-step-num">　</span><span style="color:var(--text-lo);">※ プルダウンの一覧に「YouTube Data API v3」が出てこないときは、手順4がまだ済んでいません。画面に出ている「APIライブラリ」のリンクから手順4に戻ってください</span></div>
       </div>
 
       <div class="settings-warn">⚠ このキーは無料枠のみなので高額請求の心配はありませんが、念のため他人には教えないでください。手順7の制限をかけておくと、より安全です。</div>
