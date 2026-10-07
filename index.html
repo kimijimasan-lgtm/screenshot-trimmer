@@ -169,9 +169,23 @@
     display:flex;align-items:center;justify-content:center;padding:0;flex-shrink:0;
   }
   .settings-modal-close:hover{color:var(--text-hi);}
+  .settings-intro{
+    background:var(--panel);border:1px solid var(--hairline);border-radius:10px;
+    padding:12px 14px;margin-bottom:18px;
+  }
+  .settings-intro-title{font-size:13px;font-weight:700;color:var(--text-hi);margin-bottom:8px;}
+  .settings-intro-row{font-size:12px;line-height:1.7;color:var(--text-hi);display:flex;align-items:flex-start;gap:6px;margin-bottom:2px;}
+  .settings-intro-dot{width:8px;height:8px;border-radius:50%;flex-shrink:0;margin-top:5px;}
   .settings-section{margin-bottom:20px;}
   .settings-section:last-child{margin-bottom:0;}
+  .settings-section-head{display:flex;align-items:center;gap:8px;flex-wrap:wrap;margin-bottom:8px;}
+  .settings-section-head h3{margin:0;}
   .settings-section h3{font-size:15px;font-weight:700;margin:0 0 8px;color:var(--text-hi);}
+  .settings-badge{
+    font-size:11px;font-weight:700;padding:3px 8px;border-radius:999px;white-space:nowrap;
+  }
+  .badge-required{background:rgba(255,93,58,.18);color:#ffab91;border:1px solid rgba(255,93,58,.35);}
+  .badge-optional{background:rgba(100,181,246,.15);color:#90caf9;border:1px solid rgba(100,181,246,.35);}
   .settings-desc{
     font-size:13px;line-height:1.75;color:var(--text-hi);margin-bottom:12px;
     line-break:strict;text-wrap:pretty;
@@ -226,12 +240,6 @@
   .test-key{background:#1a237e;color:#c5cae9;border:1px solid rgba(26,35,126,.5) !important;}
   .test-key:disabled{opacity:.5;cursor:default;}
   .settings-sep{border:none;border-top:1px solid var(--hairline);margin:16px 0;}
-  .settings-sub-label{font-size:12px;color:var(--text-lo);display:block;margin-bottom:6px;}
-  .settings-sub-input{
-    width:100%;padding:7px 10px;border-radius:8px;
-    border:1px solid var(--hairline);background:var(--ink);color:var(--text-hi);font-size:12px;
-  }
-  .settings-sub-input:focus{outline:none;border-color:var(--accent-2);}
   .chan-icon{overflow:hidden;}
   .chan-icon img{width:100%;height:100%;border-radius:50%;object-fit:cover;display:block;}
 
@@ -711,16 +719,40 @@
       <button class="settings-modal-close" id="settingsClose" title="閉じる">&times;</button>
     </div>
 
+    <div class="settings-intro">
+      <div class="settings-intro-title">このアプリで使う「2つの鍵」について</div>
+      <div class="settings-intro-row"><span class="settings-intro-dot" style="background:#ff8a65;"></span><span>&nbsp;<b>Anthropic APIキー</b>&nbsp;…&nbsp;字幕の要約に使います。要約機能を使うなら必要です。<b>少額の料金</b>がかかります。</span></div>
+      <div class="settings-intro-row"><span class="settings-intro-dot" style="background:#64b5f6;"></span><span>&nbsp;<b>YouTube Data API v3 キー</b>&nbsp;…&nbsp;チャンネルアイコンの表示に使います。<b>任意</b>（なくてもアプリは使えます）。<b>無料</b>です。</span></div>
+      <div class="settings-intro-row" style="color:var(--text-lo);margin-top:4px;"><span>どちらも、入力した鍵はこのブラウザの中だけに保存されます。</span></div>
+    </div>
+
     <div class="settings-section">
-      <h3>Anthropic APIキー（字幕要約に必要）</h3>
+      <div class="settings-section-head">
+        <h3>Anthropic APIキー</h3>
+        <span class="settings-badge badge-required">要約機能に必須・有料</span>
+      </div>
       <div class="settings-desc">
         字幕要約機能では、Anthropic社のAI「Claude（クロード）」が字幕テキストを読み取り、要点をまとめます。いわばClaudeはこのアプリの要約係です。<br><br>
-        Claudeに作業をお願いするには「APIキー」が必要です。APIキーとは、Claudeを使うための会員証のようなもので、あなた専用の長い文字列です。以下の手順で取得して、下の入力欄に貼り付けてください。<br><br>
-        <span style="color:var(--text-lo)">※ 字幕要約のたびにAI利用料が少額かかります（目安：1回の要約で約0.5〜2円）。料金はAnthropic社に直接支払う形になります。</span>
+        Claudeに作業をお願いするには「APIキー」が必要です。APIキーとは、Claudeを使うための会員証のようなもので、あなた専用の長い文字列です。以下の手順で取得して、下の入力欄に貼り付けてください。
+      </div>
+
+      <div class="settings-desc" style="background:var(--panel);border-radius:8px;padding:10px 12px;">
+        💰 <b>料金の目安</b>（字幕要約1回ごと。日本語を安全側（1文字＝1.5トークン）で見積もり、1ドル＝150円として計算した概算です。実際のレートや文章量により変わります）<br>
+        ・短い範囲（5〜10分程度の字幕）を要約：1回あたり<b>1〜2円程度</b><br>
+        ・一度に要約できる最大の長さ（50,000文字）を要約：1回あたり<b>最大でも13円程度</b><br>
+        料金はこのアプリの開発者にではなく、Anthropic社に直接支払う形になります。
       </div>
 
       <div class="settings-steps">
-        <div class="settings-steps-title">取得手順</div>
+        <div class="settings-steps-title">① 事前準備：利用残高（クレジット）の購入</div>
+        <div class="settings-step"><span class="settings-step-num">・</span><span>Anthropicの支払いは「前払い」です。APIキーを作る前後どちらでもよいので、利用のための残高（クレジット）を購入しておく必要があります</span></div>
+        <div class="settings-step"><span class="settings-step-num">・</span><span>コンソール画面の「Billing（請求）」ページで「クレジットを購入」を押し、購入する金額（米ドル）を入力します。初回は<b>5ドル程度から</b>購入できます（金額の目安は変更されることがあります）</span></div>
+        <div class="settings-step"><span class="settings-step-num">・</span><span>支払いにはクレジットカードまたはデビットカードが必要です（PayPalや電子マネーは使えません）</span></div>
+        <div class="settings-step"><span class="settings-step-num">・</span><span>（任意）使いすぎが心配な場合は、「Organization settings」→「Billing」→「Spend limits」で、1か月に使える上限金額を自分で設定できます</span></div>
+      </div>
+
+      <div class="settings-steps">
+        <div class="settings-steps-title">② APIキーの取得手順</div>
         <div class="settings-step"><span class="settings-step-num">1.</span><span>下のアドレスをブラウザで開きます：</span></div>
         <a class="settings-step-link" href="https://console.anthropic.com/" target="_blank" rel="noopener">https://console.anthropic.com/</a>
         <div class="settings-step"><span class="settings-step-num">2.</span><span>アカウントを作ってログインします（Googleアカウントでもログインできます）</span></div>
@@ -730,7 +762,7 @@
         <div class="settings-step"><span class="settings-step-num">6.</span><span>コピーした文字列を下の入力欄に貼り付けて「保存」を押します。貼り付けたら、1で開いたページは閉じてOKです</span></div>
       </div>
 
-      <div class="settings-warn">⚠ 鍵の文字列は作成した直後の1回しか表示されません。表示されたら、すぐにコピーしてください。画面を閉じると二度と見られないのでご注意ください。</div>
+      <div class="settings-warn">⚠ 鍵の文字列は作成した直後の1回しか表示されません。表示されたら、すぐにコピーしてください。画面を閉じると二度と見られないのでご注意ください。また、この鍵は他人に教えないでください（他人があなたの利用残高を使えてしまいます）。</div>
 
       <div class="settings-key-row">
         <span class="settings-key-label">APIキー：</span>
@@ -752,12 +784,47 @@
     <hr class="settings-sep">
 
     <div class="settings-section">
-      <h3>YouTube Data API v3 キー（任意）</h3>
-      <div class="settings-desc" style="margin-bottom:8px;">チャンネルアイコンの取得に使います。入力しなくてもアプリは正常に使えます。</div>
-      <label class="settings-sub-label">APIキー：</label>
-      <input id="apiKeyInput" class="settings-sub-input" type="password" placeholder="AIza...">
+      <div class="settings-section-head">
+        <h3>YouTube Data API v3 キー</h3>
+        <span class="settings-badge badge-optional">任意・無料</span>
+      </div>
+      <div class="settings-desc">
+        動画一覧に表示する、チャンネルの丸いアイコン画像を取得するために使います。このアプリ自体の動作には必要ありません。入力しなくても、動画の読み込みやキャプチャ、字幕要約はすべて問題なく使えます。<br><br>
+        こちらも「APIキー」という、あなた専用の文字列を使いますが、取得も利用もすべて<b>無料</b>です（クレジットカードの登録も不要です）。
+      </div>
+
+      <div class="settings-desc" style="background:var(--panel);border-radius:8px;padding:10px 12px;">
+        💰 <b>料金について</b><br>
+        完全に無料です。1日に10,000回分の「無料のひきかえ券（割り当て）」が用意されており、チャンネルアイコンの取得は1回につき券1枚しか使いません。使い切ることはまずありませんが、万一使い切った場合も自動で課金されることはなく、その日は取得が一時的に止まるだけです（翌日またアメリカ時間の深夜に回復します）。
+      </div>
+
+      <div class="settings-steps">
+        <div class="settings-steps-title">取得手順</div>
+        <div class="settings-step"><span class="settings-step-num">1.</span><span>下のアドレスをブラウザで開きます：</span></div>
+        <a class="settings-step-link" href="https://console.cloud.google.com/" target="_blank" rel="noopener">https://console.cloud.google.com/</a>
+        <div class="settings-step"><span class="settings-step-num">2.</span><span>Googleアカウントでログインします（普段お使いのGoogleアカウントでかまいません）</span></div>
+        <div class="settings-step"><span class="settings-step-num">3.</span><span>画面上部の「プロジェクトの選択」から「新しいプロジェクト」を作ります（名前は何でもかまいません）</span></div>
+        <div class="settings-step"><span class="settings-step-num">4.</span><span>左上のメニュー（≡）から「APIとサービス」→「ライブラリ」を開き、「YouTube Data API v3」を検索して選び、「有効にする」を押します</span></div>
+        <div class="settings-step"><span class="settings-step-num">5.</span><span>左のメニューから「APIとサービス」→「認証情報」を開き、「+ 認証情報を作成」→「API キー」を選びます</span></div>
+        <div class="settings-step"><span class="settings-step-num">6.</span><span>表示された文字列（AIzaで始まる文字列）をコピーして、下の入力欄に貼り付けます</span></div>
+        <div class="settings-step"><span class="settings-step-num">7.</span><span>（推奨・安全のため）作成したキーの「キーを制限」を押し、「APIの制限」で「キーを制限」を選んで「YouTube Data API v3」だけにチェックを入れて保存します。これで、万一この鍵が漏れても他のサービスには使われません</span></div>
+      </div>
+
+      <div class="settings-warn">⚠ このキーは無料枠のみなので高額請求の心配はありませんが、念のため他人には教えないでください。手順7の制限をかけておくと、より安全です。</div>
+
+      <div class="settings-key-row">
+        <span class="settings-key-label">APIキー：</span>
+        <input id="apiKeyInput" class="settings-key-input" type="password" placeholder="AIza..." autocomplete="off" spellcheck="false">
+        <label class="settings-show-toggle"><input type="checkbox" id="apiKeyShow">表示</label>
+      </div>
+
+      <div class="settings-safety">🔒 入力したAPIキーは、このブラウザの中だけに保存されます。外部に送信されることはありません（チャンネルアイコンを取得するときだけ、Google社のサーバーに安全に送信されます）。</div>
+
+      <div class="settings-msg" id="youtubeMsg"></div>
+
       <div class="settings-actions">
         <button class="save-key" id="saveApiKey">保存</button>
+        <button class="test-key" id="testApiKey">接続テスト</button>
         <button class="clear-key" id="clearApiKey">クリア</button>
       </div>
     </div>
@@ -925,6 +992,8 @@
   const anthropicKeyInput = document.getElementById('anthropicKeyInput');
   const anthropicKeyShow = document.getElementById('anthropicKeyShow');
   const anthropicMsg = document.getElementById('anthropicMsg');
+  const apiKeyShow = document.getElementById('apiKeyShow');
+  const youtubeMsg = document.getElementById('youtubeMsg');
 
   function openSettings(){
     apiKeyInput.value = getApiKey();
@@ -933,6 +1002,10 @@
     anthropicKeyInput.type = 'password';
     anthropicMsg.textContent = '';
     anthropicMsg.className = 'settings-msg';
+    apiKeyShow.checked = false;
+    apiKeyInput.type = 'password';
+    youtubeMsg.textContent = '';
+    youtubeMsg.className = 'settings-msg';
     settingsOverlay.classList.add('show');
   }
   function closeSettings(){ settingsOverlay.classList.remove('show'); }
@@ -943,6 +1016,9 @@
 
   anthropicKeyShow.addEventListener('change', ()=>{
     anthropicKeyInput.type = anthropicKeyShow.checked ? 'text' : 'password';
+  });
+  apiKeyShow.addEventListener('change', ()=>{
+    apiKeyInput.type = apiKeyShow.checked ? 'text' : 'password';
   });
 
   function showAnthropicMsg(text, isError){
@@ -1014,15 +1090,70 @@
     }
   });
 
+  function showYoutubeMsg(text, isError){
+    youtubeMsg.textContent = text;
+    youtubeMsg.className = 'settings-msg ' + (isError ? 'error' : 'success');
+  }
+
   document.getElementById('saveApiKey').addEventListener('click', ()=>{
-    setApiKey(apiKeyInput.value.trim());
+    const key = apiKeyInput.value.trim();
+    if(!key){
+      setApiKey('');
+      showYoutubeMsg('未入力のまま保存しました（任意のキーなので、空欄でも問題ありません）', false);
+      showToast('YouTube APIキーは未設定のままです');
+      return;
+    }
+    if(!key.startsWith('AIza')){
+      showYoutubeMsg('APIキーの形式が正しくないようです。AIza で始まる文字列を貼り付けてください。', true);
+      return;
+    }
+    setApiKey(key);
+    showYoutubeMsg('保存しました', false);
     showToast('YouTube APIキーを保存しました');
     fetchMissingThumbs();
   });
   document.getElementById('clearApiKey').addEventListener('click', ()=>{
     setApiKey('');
     apiKeyInput.value = '';
+    youtubeMsg.textContent = '';
+    youtubeMsg.className = 'settings-msg';
     showToast('YouTube APIキーをクリアしました');
+  });
+
+  document.getElementById('testApiKey').addEventListener('click', async function(){
+    const key = apiKeyInput.value.trim();
+    if(!key){
+      showYoutubeMsg('先にAPIキーを入力してください。', true);
+      return;
+    }
+    this.disabled = true;
+    this.textContent = 'テスト中…';
+    youtubeMsg.textContent = '';
+    youtubeMsg.className = 'settings-msg';
+    try{
+      const testUrl = 'https://www.googleapis.com/youtube/v3/channels?part=id&id=UC_x5XG1OV2P6uZZ5FSM9Ttw&key=' + encodeURIComponent(key);
+      const resp = await fetch(testUrl);
+      const data = await resp.json().catch(()=>({}));
+      if(resp.ok){
+        showYoutubeMsg('接続成功！ このAPIキーは正常に動作しています。', false);
+      } else {
+        const reason = data.error && data.error.errors && data.error.errors[0] && data.error.errors[0].reason;
+        if(reason === 'keyInvalid' || resp.status === 400){
+          showYoutubeMsg('APIキーが正しくありません。もう一度確認してください。', true);
+        } else if(reason === 'accessNotConfigured'){
+          showYoutubeMsg('「YouTube Data API v3」が有効になっていません。Google Cloud Consoleの手順4をもう一度確認してください。', true);
+        } else if(reason === 'quotaExceeded' || reason === 'dailyLimitExceeded'){
+          showYoutubeMsg('本日の無料枠を使い切りました。翌日（アメリカ時間の深夜）に回復します。', true);
+        } else {
+          showYoutubeMsg('エラーが発生しました（' + resp.status + '）。しばらくしてからもう一度お試しください。', true);
+        }
+      }
+    } catch(e){
+      showYoutubeMsg('接続できませんでした。インターネット接続を確認してください。', true);
+    } finally {
+      this.disabled = false;
+      this.textContent = '接続テスト';
+    }
   });
 
   // ---------------- mode management (YouTube / ローカル動画) ----------------
