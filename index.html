@@ -407,6 +407,61 @@
     white-space:nowrap;z-index:70;max-width:90%;overflow:hidden;text-overflow:ellipsis;
   }
   .toast.show{opacity:1;transform:translateX(-50%) translateY(0);}
+
+  /* ---------- transcript paste area ---------- */
+  .transcript-section{width:100%;display:flex;flex-direction:column;gap:6px;}
+  .transcript-toggle{
+    width:100%;padding:8px 4px;border-radius:8px;border:1px solid var(--hairline);
+    background:var(--panel-2);color:var(--text-lo);font-size:12px;font-weight:700;
+    cursor:pointer;white-space:nowrap;transition:color .15s ease,border-color .15s ease;
+  }
+  .transcript-toggle:hover{color:var(--text-hi);border-color:#4a4d59;}
+  .transcript-toggle.has-text{color:var(--accent-2);border-color:var(--accent-2);}
+  .transcript-area{display:none;width:100%;}
+  .transcript-area.open{display:block;}
+  .transcript-area textarea{
+    width:100%;height:120px;padding:8px;border-radius:8px;
+    border:1px solid var(--hairline);background:var(--ink);color:var(--text-hi);
+    font-size:11.5px;line-height:1.5;resize:vertical;font-family:inherit;
+  }
+  .transcript-area textarea:focus{outline:none;border-color:var(--accent-2);}
+  .transcript-info{font-size:10.5px;color:var(--text-lo);line-height:1.4;margin-top:2px;}
+
+  /* ---------- summarize button ---------- */
+  .btn-summarize{
+    width:100%;padding:10px 4px;border-radius:8px;border:none;
+    background:#7c5cfc;color:#fff;font-weight:800;font-size:14px;
+    cursor:pointer;line-height:1.15;white-space:nowrap;
+    transition:filter .12s ease,opacity .12s ease;
+  }
+  .btn-summarize:hover{filter:brightness(1.1);}
+  .btn-summarize[disabled]{opacity:.35;cursor:default;}
+
+  /* ---------- summary overlay ---------- */
+  .summary-overlay{
+    position:fixed;inset:0;z-index:80;
+    background:rgba(10,11,16,.85);
+    display:flex;align-items:center;justify-content:center;
+    opacity:0;pointer-events:none;transition:opacity .25s ease;
+  }
+  .summary-overlay.show{opacity:1;pointer-events:auto;}
+  .summary-box{
+    background:var(--panel-2);border:1px solid var(--hairline);border-radius:14px;
+    padding:20px;max-width:600px;width:90%;max-height:80vh;
+    display:flex;flex-direction:column;gap:12px;
+  }
+  .summary-box h3{font-size:15px;font-weight:700;margin:0;color:var(--text-hi);}
+  .summary-text{
+    flex:1;overflow-y:auto;font-size:13px;line-height:1.8;
+    color:var(--text-hi);white-space:pre-wrap;word-break:break-word;
+  }
+  .summary-actions{display:flex;gap:8px;}
+  .summary-actions button{
+    flex:1;padding:10px;border-radius:8px;border:none;font-weight:700;font-size:13px;cursor:pointer;
+  }
+  .summary-copy{background:var(--accent-2);color:#04211e;}
+  .summary-close{background:var(--panel);color:var(--text-lo);border:1px solid var(--hairline) !important;}
+  .summary-close:hover{color:var(--text-hi);}
 </style>
 </head>
 <body>
@@ -439,6 +494,14 @@
         <button class="save-key" id="saveApiKey">保存</button>
         <button class="clear-key" id="clearApiKey">クリア</button>
       </div>
+      <div style="margin-top:12px;border-top:1px solid var(--hairline);padding-top:12px;">
+        <label>Anthropic APIキー（字幕要約用）</label>
+        <input id="anthropicKeyInput" type="password" placeholder="sk-ant-...">
+        <div class="settings-actions">
+          <button class="save-key" id="saveAnthropicKey">保存</button>
+          <button class="clear-key" id="clearAnthropicKey">クリア</button>
+        </div>
+      </div>
     </div>
   </div>
 </header>
@@ -466,6 +529,13 @@
   <div class="fab-area" id="fabArea">
     <button id="notebooklmBtn" class="btn-notebooklm" title="動画URLをコピーしてNotebookLMを開く">NotebookLM</button>
     <button id="transcribeBtn" class="btn-transcribe" title="現在の再生位置からYouTubeを新しいタブで開く（文字起こしパネルは手動で開いてください）">文字起こし</button>
+    <div class="transcript-section" id="transcriptSection">
+      <button class="transcript-toggle" id="transcriptToggle">📝 字幕テキストを貼り付け</button>
+      <div class="transcript-area" id="transcriptArea">
+        <textarea id="transcriptText" placeholder="YouTubeの「文字起こしを表示」から全文をコピーして貼り付けてください"></textarea>
+        <div class="transcript-info">貼り付け後、タイムスタンプを2つ選んで「要約」を押してください</div>
+      </div>
+    </div>
     <div class="jumpbar">
       <div class="now-time mono" id="nowTime">0:00</div>
       <div class="bm-list" id="bmList">
@@ -479,6 +549,7 @@
         <button id="bmCaptureBtn">📌 取得</button>
         <button id="bmJumpBtn">⏩ ジャンプ</button>
       </div>
+      <button id="summarizeBtn" class="btn-summarize" disabled>✨ 要約</button>
     </div>
     <div class="playback-controls">
       <button class="ctrl-btn" id="playPauseBtn" aria-label="再生">▶</button>
@@ -571,6 +642,17 @@
   <span id="chanPromptText"></span>
   <button class="yes" id="chanPromptYes">登録する</button>
   <button class="no" id="chanPromptNo">登録しない</button>
+</div>
+
+<div class="summary-overlay" id="summaryOverlay">
+  <div class="summary-box">
+    <h3>要約結果</h3>
+    <div class="summary-text" id="summaryText"></div>
+    <div class="summary-actions">
+      <button class="summary-copy" id="summaryCopyBtn">コピー</button>
+      <button class="summary-close" id="summaryCloseBtn">閉じる</button>
+    </div>
+  </div>
 </div>
 
 <div class="toast" id="toast"></div>
@@ -728,10 +810,19 @@
   const settingsBtn = document.getElementById('settingsBtn');
   const settingsPanel = document.getElementById('settingsPanel');
   const apiKeyInput = document.getElementById('apiKeyInput');
+  // Anthropic API key management
+  const ANTHROPIC_KEY_KEY = 'stAnthropicApiKey';
+  function getAnthropicKey(){ return localStorage.getItem(ANTHROPIC_KEY_KEY) || ''; }
+  function setAnthropicKey(key){ if(key) localStorage.setItem(ANTHROPIC_KEY_KEY, key); else localStorage.removeItem(ANTHROPIC_KEY_KEY); }
+  const anthropicKeyInput = document.getElementById('anthropicKeyInput');
+
   settingsBtn.addEventListener('click', (e)=>{
     e.stopPropagation();
     settingsPanel.classList.toggle('open');
-    if(settingsPanel.classList.contains('open')) apiKeyInput.value = getApiKey();
+    if(settingsPanel.classList.contains('open')){
+      apiKeyInput.value = getApiKey();
+      anthropicKeyInput.value = getAnthropicKey();
+    }
   });
   document.addEventListener('click', (e)=>{
     if(!settingsPanel.contains(e.target) && e.target !== settingsBtn) settingsPanel.classList.remove('open');
@@ -747,6 +838,17 @@
     apiKeyInput.value = '';
     settingsPanel.classList.remove('open');
     showToast('APIキーをクリアしました');
+  });
+  document.getElementById('saveAnthropicKey').addEventListener('click', ()=>{
+    setAnthropicKey(anthropicKeyInput.value.trim());
+    settingsPanel.classList.remove('open');
+    showToast('Anthropic APIキーを保存しました');
+  });
+  document.getElementById('clearAnthropicKey').addEventListener('click', ()=>{
+    setAnthropicKey('');
+    anthropicKeyInput.value = '';
+    settingsPanel.classList.remove('open');
+    showToast('Anthropic APIキーをクリアしました');
   });
 
   // ---------------- mode management (YouTube / ローカル動画) ----------------
@@ -769,6 +871,8 @@
     document.getElementById('notebooklmBtn'),
     document.getElementById('transcribeBtn'),
     document.getElementById('shareStatus'),
+    document.getElementById('transcriptSection'),
+    document.getElementById('summarizeBtn'),
   ];
 
   function getActivePlayer(){
@@ -1043,7 +1147,9 @@
     bmTimes.fill(null);
     bmNext = 0;
     bmChecks.forEach(c=>{ c.checked = false; });
+    bmCheckOrder = [];
     renderBookmarks();
+    if(typeof updateSummarizeBtn === 'function') updateSummarizeBtn();
   }
 
   document.getElementById('bmCaptureBtn').addEventListener('click', ()=>{
@@ -1054,18 +1160,43 @@
     bmNext = (bmNext + 1) % bmTimes.length;
   });
 
-  // 排他選択: どれかをチェックしたら他は外す
+  // 2つまで選択可能（3つ目を入れたら最古のチェックを外す）
+  const summarizeBtn = document.getElementById('summarizeBtn');
+  const transcriptText = document.getElementById('transcriptText');
+  const transcriptToggle = document.getElementById('transcriptToggle');
+  const transcriptArea = document.getElementById('transcriptArea');
+  let bmCheckOrder = [];
+  let summarizing = false;
+
+  function updateSummarizeBtn(){
+    if(summarizing){ summarizeBtn.disabled = true; return; }
+    const checkedCount = bmChecks.filter(c=>c.checked).length;
+    const hasTranscript = transcriptText.value.trim().length > 0;
+    summarizeBtn.disabled = !(checkedCount === 2 && hasTranscript);
+  }
+
   bmChecks.forEach((cb, i)=>{
     cb.addEventListener('change', ()=>{
-      if(cb.checked) bmChecks.forEach((o, j)=>{ if(j !== i) o.checked = false; });
+      if(cb.checked){
+        bmCheckOrder = bmCheckOrder.filter(idx=>idx !== i);
+        bmCheckOrder.push(i);
+        if(bmCheckOrder.length > 2){
+          const oldest = bmCheckOrder.shift();
+          bmChecks[oldest].checked = false;
+        }
+      }else{
+        bmCheckOrder = bmCheckOrder.filter(idx=>idx !== i);
+      }
+      updateSummarizeBtn();
     });
   });
 
   document.getElementById('bmJumpBtn').addEventListener('click', ()=>{
-    const i = bmChecks.findIndex(c=>c.checked);
-    if(i < 0 || bmTimes[i] === null) return;  // 未選択・空枠なら何もしない
+    const checked = bmChecks.map((c,i)=>c.checked ? i : -1).filter(i=>i >= 0 && bmTimes[i] !== null);
+    if(checked.length === 0) return;
+    const target = Math.min(...checked.map(i=>bmTimes[i]));
     const ap = getActivePlayer();
-    ap.seekTo(bmTimes[i]);
+    ap.seekTo(target);
     ap.play();
   });
 
@@ -1649,6 +1780,149 @@
     }finally{
       revSaveBtn.disabled = false;
     }
+  });
+  // ---------------- transcript paste & summarize ----------------
+  transcriptToggle.addEventListener('click', ()=>{
+    const open = transcriptArea.classList.toggle('open');
+    transcriptToggle.textContent = open ? '📝 字幕テキストを閉じる' : (transcriptText.value.trim() ? '📝 字幕テキスト（貼り付け済み）' : '📝 字幕テキストを貼り付け');
+  });
+  transcriptText.addEventListener('input', ()=>{
+    const hasText = transcriptText.value.trim().length > 0;
+    transcriptToggle.classList.toggle('has-text', hasText);
+    if(!transcriptArea.classList.contains('open')){
+      transcriptToggle.textContent = hasText ? '📝 字幕テキスト（貼り付け済み）' : '📝 字幕テキストを貼り付け';
+    }
+    updateSummarizeBtn();
+  });
+
+  function parseTranscriptTimestamp(str){
+    const parts = str.trim().split(':').map(Number);
+    if(parts.some(isNaN)) return null;
+    if(parts.length === 2) return parts[0] * 60 + parts[1];
+    if(parts.length === 3) return parts[0] * 3600 + parts[1] * 60 + parts[2];
+    return null;
+  }
+
+  function extractTranscriptRange(text, startSec, endSec){
+    const lines = text.split('\n');
+    const segments = [];
+    let currentTime = null;
+    let currentLines = [];
+    for(const line of lines){
+      const trimmed = line.trim();
+      if(!trimmed) continue;
+      const tsMatch = trimmed.match(/^(\d{1,2}:\d{2}(?::\d{2})?)$/);
+      if(tsMatch){
+        if(currentTime !== null && currentLines.length > 0){
+          segments.push({ time: currentTime, text: currentLines.join(' ') });
+        }
+        currentTime = parseTranscriptTimestamp(tsMatch[1]);
+        currentLines = [];
+      }else{
+        currentLines.push(trimmed);
+      }
+    }
+    if(currentTime !== null && currentLines.length > 0){
+      segments.push({ time: currentTime, text: currentLines.join(' ') });
+    }
+    if(segments.length === 0) return null;
+    const filtered = segments.filter(s=> s.time >= startSec && s.time <= endSec);
+    if(filtered.length === 0) return null;
+    return filtered.map(s=> s.text).join('\n');
+  }
+
+  async function callClaudeForSummary(text, startSec, endSec){
+    const apiKey = getAnthropicKey();
+    if(!apiKey) throw new Error('Anthropic APIキーが設定されていません。⚙ボタンから設定してください。');
+    const systemPrompt = 'あなたは動画の字幕テキストを要約するアシスタントです。';
+    const userPrompt = '以下はYouTube動画の字幕テキストです（' + fmtTime(startSec) + '〜' + fmtTime(endSec) + 'の範囲）。\n要点を日本語で箇条書きにまとめてください。\n重要なポイントには、おおよその時刻（例: 12:30頃）を添えてください。\n専門用語や固有名詞はそのまま残してください。\n\n---\n' + text;
+    const res = await fetch('https://api.anthropic.com/v1/messages', {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+        'x-api-key': apiKey,
+        'anthropic-version': '2023-06-01',
+        'anthropic-dangerous-direct-browser-access': 'true',
+      },
+      body: JSON.stringify({
+        model: 'claude-haiku-4-5',
+        max_tokens: 2048,
+        system: systemPrompt,
+        messages: [{ role: 'user', content: userPrompt }],
+      }),
+    });
+    if(!res.ok){
+      const err = await res.json().catch(()=>({}));
+      if(res.status === 401) throw new Error('APIキーが無効です。設定を確認してください。');
+      if(res.status === 429) throw new Error('APIのレート制限に達しました。少し待ってからやり直してください。');
+      throw new Error((err.error && err.error.message) || 'API呼び出しに失敗しました（' + res.status + '）');
+    }
+    const data = await res.json();
+    return data.content[0].text;
+  }
+
+  summarizeBtn.addEventListener('click', async ()=>{
+    if(summarizing) return;
+    const checkedIndices = bmChecks.map((c,i)=>c.checked ? i : -1).filter(i=>i >= 0);
+    if(checkedIndices.length !== 2){
+      showToast('タイムスタンプを2つ選んでください');
+      return;
+    }
+    const times = checkedIndices.map(i=>bmTimes[i]).filter(t=>t !== null);
+    if(times.length !== 2){
+      showToast('選択したタイムスタンプが空です');
+      return;
+    }
+    const startSec = Math.min(times[0], times[1]);
+    const endSec = Math.max(times[0], times[1]);
+    const transcript = transcriptText.value.trim();
+    if(!transcript){
+      showToast('字幕テキストを貼り付けてください');
+      return;
+    }
+    const hasTimestamps = /\d{1,2}:\d{2}(?::\d{2})?/.test(transcript);
+    if(!hasTimestamps){
+      showToast('タイムスタンプが見つかりませんでした。YouTubeの文字起こしパネルからコピーしたテキストを貼り付けてください');
+      return;
+    }
+    const extracted = extractTranscriptRange(transcript, startSec, endSec);
+    if(!extracted){
+      showToast('指定した範囲（' + fmtTime(startSec) + '〜' + fmtTime(endSec) + '）に字幕テキストがありませんでした');
+      return;
+    }
+    if(extracted.length > 50000){
+      showToast('字幕テキストが長すぎます（50,000文字超）。範囲を狭めてください');
+      return;
+    }
+
+    summarizing = true;
+    summarizeBtn.disabled = true;
+    const origLabel = summarizeBtn.textContent;
+    summarizeBtn.textContent = '要約中…';
+    setStatus('');
+
+    try{
+      const summary = await callClaudeForSummary(extracted, startSec, endSec);
+      try{ await navigator.clipboard.writeText(summary); showToast('クリップボードにコピーしました'); }catch(e){}
+      document.getElementById('summaryText').textContent = summary;
+      document.getElementById('summaryOverlay').classList.add('show');
+    }catch(err){
+      setStatus(err.message, true);
+    }finally{
+      summarizing = false;
+      summarizeBtn.textContent = origLabel;
+      updateSummarizeBtn();
+    }
+  });
+
+  // summary overlay handlers
+  document.getElementById('summaryCopyBtn').addEventListener('click', async ()=>{
+    const text = document.getElementById('summaryText').textContent;
+    try{ await navigator.clipboard.writeText(text); showToast('クリップボードにコピーしました'); }
+    catch(e){ setStatus('コピーに失敗しました', true); }
+  });
+  document.getElementById('summaryCloseBtn').addEventListener('click', ()=>{
+    document.getElementById('summaryOverlay').classList.remove('show');
   });
 })();
 </script>
