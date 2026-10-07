@@ -753,11 +753,11 @@
 
       <div class="settings-steps">
         <div class="settings-steps-title">② APIキーの取得手順</div>
-        <div class="settings-step"><span class="settings-step-num">1.</span><span>下のアドレスをブラウザで開きます：</span></div>
-        <a class="settings-step-link" href="https://console.anthropic.com/" target="_blank" rel="noopener">https://console.anthropic.com/</a>
+        <div class="settings-step"><span class="settings-step-num">1.</span><span>下のアドレスをブラウザで開きます（APIキーの一覧ページに直接移動します）：</span></div>
+        <a class="settings-step-link" href="https://platform.claude.com/settings/keys" target="_blank" rel="noopener">https://platform.claude.com/settings/keys</a>
         <div class="settings-step"><span class="settings-step-num">2.</span><span>アカウントを作ってログインします（Googleアカウントでもログインできます）</span></div>
-        <div class="settings-step"><span class="settings-step-num">3.</span><span>画面上部の「API keys」を押し、「Create Key」ボタンを押します</span></div>
-        <div class="settings-step"><span class="settings-step-num">4.</span><span>名前の欄には何を入力してもかまいません（空欄のままでもOK）。「Create Key」を押します</span></div>
+        <div class="settings-step"><span class="settings-step-num">3.</span><span>画面に表示される「Create key」ボタンを押します</span></div>
+        <div class="settings-step"><span class="settings-step-num">4.</span><span>名前を入力します（あとで自分が分かればどんな名前でもOK）。有効期限（Expiration）や利用者（Linked account）の欄は、そのままで大丈夫です。入力できたら、もう一度「Create Key」を押します</span></div>
         <div class="settings-step"><span class="settings-step-num">5.</span><span>表示された文字列（sk-ant-... で始まる長い文字列）をコピーします</span></div>
         <div class="settings-step"><span class="settings-step-num">6.</span><span>コピーした文字列を下の入力欄に貼り付けて「保存」を押します。貼り付けたら、1で開いたページは閉じてOKです</span></div>
       </div>
@@ -803,9 +803,13 @@
         <div class="settings-step"><span class="settings-step-num">1.</span><span>下のアドレスをブラウザで開きます：</span></div>
         <a class="settings-step-link" href="https://console.cloud.google.com/" target="_blank" rel="noopener">https://console.cloud.google.com/</a>
         <div class="settings-step"><span class="settings-step-num">2.</span><span>Googleアカウントでログインします（普段お使いのGoogleアカウントでかまいません）</span></div>
-        <div class="settings-step"><span class="settings-step-num">3.</span><span>画面上部の「プロジェクトの選択」から「新しいプロジェクト」を作ります（名前は何でもかまいません）</span></div>
+        <div class="settings-step"><span class="settings-step-num">3.</span><span>画面左上、「Google Cloud」のロゴの右にある丸いボタンを押します（すでにプロジェクトがある場合はそのプロジェクト名、ない場合は「プロジェクトを選択」と表示されています）</span></div>
+        <div class="settings-step"><span class="settings-step-num">　</span><span>開いた小さなウィンドウの右上にある「新しいプロジェクト」を押します</span></div>
+        <div class="settings-step"><span class="settings-step-num">　</span><span>名前は何でもかまいません。入力して「作成」を押します</span></div>
+        <div class="settings-step"><span class="settings-step-num">　</span><span>作成には数十秒かかることがあります。完了したら、同じボタンをもう一度押して、作ったプロジェクトが選ばれていることを確認します</span></div>
+        <div class="settings-step"><span class="settings-step-num">　</span><span style="color:var(--text-lo);">※ すでにGoogle Cloudのプロジェクトをお持ちの場合は、新しく作らず、そのプロジェクトを使っても大丈夫です</span></div>
         <div class="settings-step"><span class="settings-step-num">4.</span><span>左上のメニュー（≡）から「APIとサービス」→「ライブラリ」を開き、「YouTube Data API v3」を検索して選び、「有効にする」を押します</span></div>
-        <div class="settings-step"><span class="settings-step-num">5.</span><span>左のメニューから「APIとサービス」→「認証情報」を開き、「+ 認証情報を作成」→「API キー」を選びます</span></div>
+        <div class="settings-step"><span class="settings-step-num">5.</span><span>左のメニューから「APIとサービス」→「認証情報」を開き、上部の「認証情報を作成」ボタンを押して「API キー」を選びます</span></div>
         <div class="settings-step"><span class="settings-step-num">6.</span><span>表示された文字列（AIzaで始まる文字列）をコピーして、下の入力欄に貼り付けます</span></div>
         <div class="settings-step"><span class="settings-step-num">7.</span><span>（推奨・安全のため）作成したキーの「キーを制限」を押し、「APIの制限」で「キーを制限」を選んで「YouTube Data API v3」だけにチェックを入れて保存します。これで、万一この鍵が漏れても他のサービスには使われません</span></div>
       </div>
