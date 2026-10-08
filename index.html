@@ -94,12 +94,6 @@
   .chan-prompt .yes{background:var(--accent-2);color:#04211e;}
   .chan-prompt .no{background:var(--panel);color:var(--text-lo);border:1px solid var(--hairline);}
   .chan-prompt .no:hover{color:var(--text-hi);}
-  .btn-notebooklm{
-    width:100%;padding:10px 4px;border-radius:8px;border:none;
-    background:#ffd400;color:#1445c7;font-weight:800;font-size:15px;
-    cursor:pointer;line-height:1.15;white-space:nowrap;letter-spacing:-.01em;
-  }
-  .btn-notebooklm:hover{filter:brightness(1.06);}
   .btn-transcribe{
     width:100%;padding:10px 4px;border-radius:8px;border:none;
     background:var(--accent-2);color:#04211e;font-weight:800;font-size:15px;
@@ -107,17 +101,17 @@
   }
   .btn-transcribe:hover{filter:brightness(1.06);}
   .now-time{
-    font-size:18px;font-weight:800;color:var(--accent);
-    background:var(--ink);border:1px solid var(--hairline);border-radius:6px;
-    padding:3px 10px;line-height:1.2;white-space:nowrap;
+    font-size:32px;font-weight:800;color:var(--accent);
+    background:var(--ink);border:1px solid var(--hairline);border-radius:8px;
+    padding:6px 18px;line-height:1.2;white-space:nowrap;
   }
-  .bm-list{display:flex;gap:8px;align-items:center;}
-  .bm-row{display:flex;align-items:center;gap:4px;cursor:pointer;}
-  .bm-row input{width:14px;height:14px;flex:0 0 auto;accent-color:var(--accent-2);cursor:pointer;margin:0;}
+  .bm-list{display:flex;gap:22px;align-items:center;}
+  .bm-row{display:flex;align-items:center;gap:8px;cursor:pointer;}
+  .bm-row input{width:22px;height:22px;flex:0 0 auto;accent-color:var(--accent-2);cursor:pointer;margin:0;}
   .bm-time{
-    text-align:center;font-size:14px;font-weight:800;color:var(--accent);
-    background:var(--ink);border:1px solid var(--hairline);border-radius:6px;
-    padding:2px 8px;line-height:1.2;min-width:48px;white-space:nowrap;
+    text-align:center;font-size:24px;font-weight:800;color:var(--accent);
+    background:var(--ink);border:1px solid var(--hairline);border-radius:8px;
+    padding:4px 14px;line-height:1.2;min-width:74px;white-space:nowrap;
   }
   .bm-time.empty{color:var(--text-lo);font-weight:600;}
   .bm-actions{display:flex;gap:6px;width:100%;}
@@ -246,11 +240,10 @@
   .chan-icon img{width:100%;height:100%;border-radius:50%;object-fit:cover;display:block;}
 
   .toolbar-row{
-    flex:0 0 auto;display:flex;align-items:center;gap:12px;
-    padding:4px 18px;background:var(--panel);border-bottom:1px solid var(--hairline);
-    min-height:36px;
+    flex:0 0 auto;display:flex;align-items:center;gap:28px;
+    padding:10px 18px;background:var(--panel);border-bottom:1px solid var(--hairline);
   }
-  .toolbar-row .chan-icon{width:28px;height:28px;font-size:12px;}
+  .toolbar-row .chan-icon{width:40px;height:40px;font-size:15px;}
 
   /* ---------- main (watch) ---------- */
   main{flex:1;display:flex;min-height:0;position:relative;}
@@ -342,14 +335,27 @@
 
   /* ---------- fab area (jump + playback + shutter) ---------- */
   .fab-area{
-    flex:0 1 180px;
-    display:flex;flex-direction:column;align-items:center;gap:8px;
+    flex:0 1 198px;
+    display:flex;flex-direction:column;align-items:center;gap:10px;
     justify-content:flex-start;
     overflow:hidden;
     background:var(--video);
-    padding:10px 12px;
+    padding:10px 11px;
     border-left:1px solid var(--hairline);
     border-right:1px solid var(--hairline);
+  }
+
+  /* 関連ボタンをカードでまとめて、流れを作る */
+  .fab-group{
+    width:100%;flex:0 0 auto;
+    display:flex;flex-direction:column;align-items:center;gap:7px;
+    background:rgba(255,255,255,.025);
+    border:1px solid var(--hairline);border-radius:14px;
+    padding:9px 9px;
+  }
+  .fab-group-shutter{
+    background:rgba(255,93,58,.07);border-color:rgba(255,93,58,.3);
+    padding:12px 9px;
   }
 
   .playback-controls{display:flex;gap:8px;}
@@ -364,9 +370,9 @@
   .ctrl-btn:active{transform:scale(.9);}
 
   .fab{
-    position:relative;background:none;border:none;padding:6px;
+    position:relative;background:none;border:none;padding:4px;
     color:var(--text-hi);display:flex;flex-direction:column;align-items:center;justify-content:center;
-    font-size:64px;line-height:1;cursor:pointer;
+    font-size:72px;line-height:1;cursor:pointer;
     transition:transform .12s ease, filter .12s ease, opacity .12s ease;
     user-select:none;
   }
@@ -492,18 +498,35 @@
   }
   .transcript-toggle:hover{color:var(--text-hi);border-color:#4a4d59;}
   .transcript-toggle.has-text{color:var(--accent-2);border-color:var(--accent-2);}
-  .transcript-area{display:none;width:100%;}
-  .transcript-area.open{display:block;}
-  .transcript-area textarea{
-    width:100%;height:120px;padding:8px;border-radius:8px;
-    border:1px solid var(--hairline);background:var(--ink);color:var(--text-hi);
-    font-size:11.5px;line-height:1.5;resize:vertical;font-family:inherit;
-  }
-  .transcript-area textarea:focus{outline:none;border-color:var(--accent-2);}
   .transcript-steps{
     display:flex;flex-direction:column;gap:1px;
     font-size:10.5px;color:var(--text-lo);padding:2px 0 4px;line-height:1.4;
   }
+
+  /* 字幕貼り付けパネル：固定位置のポップオーバーとして開き、右パネルの他ボタンを押し下げない */
+  .transcript-popover{
+    position:fixed;z-index:75;
+    background:var(--panel-2);border:1px solid var(--hairline);border-radius:12px;
+    box-shadow:0 12px 36px rgba(0,0,0,.5);
+    padding:14px;width:360px;max-width:92vw;
+    opacity:0;pointer-events:none;transform:translateY(6px);
+    transition:opacity .18s ease, transform .18s ease;
+  }
+  .transcript-popover.open{opacity:1;pointer-events:auto;transform:translateY(0);}
+  .transcript-popover-head{display:flex;align-items:center;justify-content:space-between;margin-bottom:6px;}
+  .transcript-popover-head span{font-size:12.5px;font-weight:700;color:var(--text-hi);}
+  .transcript-popover-close{
+    width:24px;height:24px;border-radius:50%;border:1px solid var(--hairline);
+    background:var(--panel);color:var(--text-lo);font-size:14px;cursor:pointer;
+    display:flex;align-items:center;justify-content:center;padding:0;flex-shrink:0;
+  }
+  .transcript-popover-close:hover{color:var(--text-hi);}
+  .transcript-popover textarea{
+    width:100%;height:160px;padding:8px;border-radius:8px;
+    border:1px solid var(--hairline);background:var(--ink);color:var(--text-hi);
+    font-size:11.5px;line-height:1.5;resize:vertical;font-family:inherit;
+  }
+  .transcript-popover textarea:focus{outline:none;border-color:var(--accent-2);}
   .summarize-status{
     font-size:10.5px;color:var(--text-lo);text-align:center;
     line-height:1.3;width:100%;min-height:14px;
@@ -608,42 +631,57 @@
   </div>
 
   <div class="fab-area" id="fabArea">
-    <div class="bm-actions">
-      <button id="bmCaptureBtn">📌 取得</button>
-      <button id="bmJumpBtn">⏩ ジャンプ</button>
-    </div>
-    <div class="playback-controls">
-      <button class="ctrl-btn" id="playPauseBtn" aria-label="再生">▶</button>
-    </div>
-    <button class="back10-btn" id="back10Btn" aria-label="10秒戻る">⏪ 10秒戻る</button>
-    <div class="frame-controls">
-      <div class="frame-col">
-        <button class="frame-btn" id="frameBack5Btn" aria-label="5コマ戻る（&lt;キー）" title="5コマ戻る（&lt;キー）"><span class="glyph-mirror">▶▶▏</span></button>
-        <button class="frame-btn" id="frameBack1Btn" aria-label="1コマ戻る（,キー）" title="1コマ戻る（,キー）"><span class="glyph-mirror">▶▏</span></button>
+    <div class="fab-group fab-group-transcript">
+      <button id="transcribeBtn" class="btn-transcribe" title="現在の再生位置からYouTubeを新しいタブで開く（文字起こしパネルは手動で開いてください）">文字起こし</button>
+      <div class="transcript-section" id="transcriptSection">
+        <button class="transcript-toggle" id="transcriptToggle">📝 字幕を貼り付け</button>
       </div>
-      <div class="frame-col frame-col-fwd">
-        <button class="frame-btn" id="frameFwd5Btn" aria-label="5コマ進む（&gt;キー）" title="5コマ進む（&gt;キー）">▶▶▏</button>
-        <button class="frame-btn" id="frameFwd1Btn" aria-label="1コマ進む（.キー）" title="1コマ進む（.キー）">▶▏</button>
+      <div class="summarize-status" id="summarizeStatus"></div>
+      <div class="api-key-status" id="apiKeyStatus"></div>
+      <button id="summarizeBtn" class="btn-summarize" disabled>✨ 要約</button>
+    </div>
+
+    <div class="fab-group fab-group-bookmark">
+      <div class="bm-actions">
+        <button id="bmCaptureBtn">📌 取得</button>
+        <button id="bmJumpBtn">⏩ ジャンプ</button>
       </div>
     </div>
-    <button class="fab" id="shutterBtn" aria-label="キャプチャ（Cキー）">📷<span class="key-hint">C キー</span></button>
-    <button id="notebooklmBtn" class="btn-notebooklm" title="動画URLをコピーしてNotebookLMを開く">NotebookLM</button>
-    <button id="transcribeBtn" class="btn-transcribe" title="現在の再生位置からYouTubeを新しいタブで開く（文字起こしパネルは手動で開いてください）">文字起こし</button>
-    <div class="transcript-section" id="transcriptSection">
-      <button class="transcript-toggle" id="transcriptToggle">📝 字幕テキストを貼り付け</button>
-      <div class="transcript-area" id="transcriptArea">
-        <div class="transcript-steps">
-          <span>①「文字起こし」で字幕を開く</span>
-          <span>② コピーして下に貼る</span>
-          <span>③ タイムスタンプを2つ選ぶ</span>
-          <span>④「要約」を押す</span>
+
+    <div class="fab-group fab-group-playback">
+      <div class="playback-controls">
+        <button class="ctrl-btn" id="playPauseBtn" aria-label="再生">▶</button>
+      </div>
+      <button class="back10-btn" id="back10Btn" aria-label="10秒戻る">⏪ 10秒戻る</button>
+      <div class="frame-controls">
+        <div class="frame-col">
+          <button class="frame-btn" id="frameBack5Btn" aria-label="5コマ戻る（&lt;キー）" title="5コマ戻る（&lt;キー）"><span class="glyph-mirror">▶▶▏</span></button>
+          <button class="frame-btn" id="frameBack1Btn" aria-label="1コマ戻る（,キー）" title="1コマ戻る（,キー）"><span class="glyph-mirror">▶▏</span></button>
         </div>
-        <textarea id="transcriptText" placeholder="YouTubeの「文字起こしを表示」から全文をコピーして貼り付けてください"></textarea>
+        <div class="frame-col frame-col-fwd">
+          <button class="frame-btn" id="frameFwd5Btn" aria-label="5コマ進む（&gt;キー）" title="5コマ進む（&gt;キー）">▶▶▏</button>
+          <button class="frame-btn" id="frameFwd1Btn" aria-label="1コマ進む（.キー）" title="1コマ進む（.キー）">▶▏</button>
+        </div>
       </div>
     </div>
-    <div class="summarize-status" id="summarizeStatus"></div>
-    <div class="api-key-status" id="apiKeyStatus"></div>
-    <button id="summarizeBtn" class="btn-summarize" disabled>✨ 要約</button>
+
+    <div class="fab-group fab-group-shutter">
+      <button class="fab" id="shutterBtn" aria-label="キャプチャ（Cキー）">📷<span class="key-hint">C キー</span></button>
+    </div>
+  </div>
+
+  <div class="transcript-popover" id="transcriptPopover">
+    <div class="transcript-popover-head">
+      <span>字幕テキストを貼り付け</span>
+      <button class="transcript-popover-close" id="transcriptCloseBtn" aria-label="閉じる">&times;</button>
+    </div>
+    <div class="transcript-steps">
+      <span>①「文字起こし」で字幕を開く</span>
+      <span>② コピーして下に貼る</span>
+      <span>③ タイムスタンプを2つ選ぶ</span>
+      <span>④「要約」を押す</span>
+    </div>
+    <textarea id="transcriptText" placeholder="YouTubeの「文字起こしを表示」から全文をコピーして貼り付けてください"></textarea>
   </div>
 
   <div class="side-pane">
@@ -1223,7 +1261,6 @@
     document.getElementById('videoInput'),
     document.getElementById('loadBtn'),
     document.getElementById('chanRow'),
-    document.getElementById('notebooklmBtn'),
     document.getElementById('transcribeBtn'),
     document.getElementById('shareStatus'),
     document.getElementById('transcriptSection'),
@@ -1389,20 +1426,6 @@
     maybeOfferChannel(id);
   }
 
-  document.getElementById('notebooklmBtn').addEventListener('click', async ()=>{
-    if(currentMode !== 'youtube') return;
-    if(!currentVideoId){ setStatus('動画が読み込まれていません。', true); return; }
-    const url = 'https://www.youtube.com/watch?v=' + currentVideoId;
-    // 先にコピーしてからタブを開く（新タブにフォーカスが移るとクリップボード書き込みが失敗するため）
-    try{
-      await navigator.clipboard.writeText(url);
-      showToast('動画URLをコピーしました。NotebookLMに貼り付けてください');
-    }catch(e){
-      setStatus('URLのコピーに失敗しました。手動でコピーしてください: ' + url, true);
-    }
-    window.open('https://notebooklm.google.com/', '_blank');
-  });
-
   // 現在の再生位置つきURLでYouTubeを新しいタブで開く（文字起こしパネルはユーザーが手動で開く）
   document.getElementById('transcribeBtn').addEventListener('click', ()=>{
     if(currentMode !== 'youtube') return;
@@ -1519,7 +1542,8 @@
   const summarizeBtn = document.getElementById('summarizeBtn');
   const transcriptText = document.getElementById('transcriptText');
   const transcriptToggle = document.getElementById('transcriptToggle');
-  const transcriptArea = document.getElementById('transcriptArea');
+  const transcriptPopover = document.getElementById('transcriptPopover');
+  const transcriptCloseBtn = document.getElementById('transcriptCloseBtn');
   const summarizeStatusEl = document.getElementById('summarizeStatus');
   const apiKeyStatusEl = document.getElementById('apiKeyStatus');
   let bmCheckOrder = [];
@@ -2154,15 +2178,49 @@
     }
   });
   // ---------------- transcript paste & summarize ----------------
+  // 字幕貼り付けパネルは固定位置のポップオーバーとして開く（右パネルの他ボタンを押し下げないため）
+  function positionTranscriptPopover(){
+    const rect = transcriptToggle.getBoundingClientRect();
+    const popW = transcriptPopover.offsetWidth || 360;
+    let left = rect.right - popW;
+    left = Math.max(10, Math.min(left, window.innerWidth - popW - 10));
+    let top = rect.bottom + 8;
+    const popH = transcriptPopover.offsetHeight || 260;
+    if(top + popH > window.innerHeight - 10){ top = Math.max(10, rect.top - popH - 8); }
+    transcriptPopover.style.left = left + 'px';
+    transcriptPopover.style.top = top + 'px';
+  }
+  function openTranscriptPopover(){
+    transcriptPopover.classList.add('open');
+    positionTranscriptPopover();
+    transcriptToggle.textContent = '📝 字幕を閉じる';
+  }
+  function closeTranscriptPopover(){
+    transcriptPopover.classList.remove('open');
+    const hasText = transcriptText.value.trim().length > 0;
+    transcriptToggle.textContent = hasText ? '✓ 貼り付け済み' : '📝 字幕を貼り付け';
+  }
   transcriptToggle.addEventListener('click', ()=>{
-    const open = transcriptArea.classList.toggle('open');
-    transcriptToggle.textContent = open ? '📝 字幕テキストを閉じる' : (transcriptText.value.trim() ? '📝 字幕テキスト（貼り付け済み）' : '📝 字幕テキストを貼り付け');
+    if(transcriptPopover.classList.contains('open')) closeTranscriptPopover();
+    else openTranscriptPopover();
+  });
+  transcriptCloseBtn.addEventListener('click', closeTranscriptPopover);
+  document.addEventListener('click', (e)=>{
+    if(!transcriptPopover.classList.contains('open')) return;
+    if(transcriptPopover.contains(e.target) || transcriptToggle.contains(e.target)) return;
+    closeTranscriptPopover();
+  });
+  document.addEventListener('keydown', (e)=>{
+    if(e.key === 'Escape' && transcriptPopover.classList.contains('open')) closeTranscriptPopover();
+  });
+  window.addEventListener('resize', ()=>{
+    if(transcriptPopover.classList.contains('open')) positionTranscriptPopover();
   });
   transcriptText.addEventListener('input', ()=>{
     const hasText = transcriptText.value.trim().length > 0;
     transcriptToggle.classList.toggle('has-text', hasText);
-    if(!transcriptArea.classList.contains('open')){
-      transcriptToggle.textContent = hasText ? '📝 字幕テキスト（貼り付け済み）' : '📝 字幕テキストを貼り付け';
+    if(!transcriptPopover.classList.contains('open')){
+      transcriptToggle.textContent = hasText ? '✓ 貼り付け済み' : '📝 字幕を貼り付け';
     }
     updateSummarizeBtn();
   });
