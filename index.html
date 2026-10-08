@@ -106,25 +106,18 @@
     cursor:pointer;line-height:1.15;white-space:nowrap;
   }
   .btn-transcribe:hover{filter:brightness(1.06);}
-  .jumpbar{
-    display:flex;flex-direction:column;gap:6px;align-items:center;
-    background:var(--panel-2);border:1px solid var(--hairline);
-    padding:10px 8px;border-radius:14px;
-    box-shadow:0 4px 12px rgba(0,0,0,.35);
-    width:100%;
-  }
-  /* 現在の再生位置のリアルタイム表示（大きめ） */
   .now-time{
-    width:100%;text-align:center;font-size:28px;font-weight:800;color:var(--accent);
-    background:var(--ink);border:1px solid var(--hairline);border-radius:8px;padding:6px 4px;line-height:1.1;
+    font-size:18px;font-weight:800;color:var(--accent);
+    background:var(--ink);border:1px solid var(--hairline);border-radius:6px;
+    padding:3px 10px;line-height:1.2;white-space:nowrap;
   }
-  /* タイムスタンプのブックマーク5枠（チェックボックス＋時刻表示） */
-  .bm-list{display:flex;flex-direction:column;gap:5px;width:100%;}
-  .bm-row{display:flex;align-items:center;gap:7px;cursor:pointer;}
-  .bm-row input{width:16px;height:16px;flex:0 0 auto;accent-color:var(--accent-2);cursor:pointer;margin:0;}
+  .bm-list{display:flex;gap:8px;align-items:center;}
+  .bm-row{display:flex;align-items:center;gap:4px;cursor:pointer;}
+  .bm-row input{width:14px;height:14px;flex:0 0 auto;accent-color:var(--accent-2);cursor:pointer;margin:0;}
   .bm-time{
-    flex:1;text-align:center;font-size:20px;font-weight:800;color:var(--accent);
-    background:var(--ink);border:1px solid var(--hairline);border-radius:8px;padding:3px 4px;line-height:1.2;
+    text-align:center;font-size:14px;font-weight:800;color:var(--accent);
+    background:var(--ink);border:1px solid var(--hairline);border-radius:6px;
+    padding:2px 8px;line-height:1.2;min-width:48px;white-space:nowrap;
   }
   .bm-time.empty{color:var(--text-lo);font-weight:600;}
   .bm-actions{display:flex;gap:6px;width:100%;}
@@ -143,116 +136,121 @@
   /* ---------- settings ---------- */
   .settings-wrap{position:relative;flex:0 0 auto;}
   .settings-btn{
-    width:32px;height:32px;border-radius:50%;border:1px solid var(--hairline);
-    background:var(--panel-2);color:var(--text-lo);font-size:15px;cursor:pointer;
-    display:flex;align-items:center;justify-content:center;padding:0;
+    padding:5px 12px;border-radius:8px;border:1px solid var(--hairline);
+    background:var(--panel-2);color:var(--text-lo);font-size:12px;font-weight:700;cursor:pointer;
+    display:flex;align-items:center;justify-content:center;gap:4px;white-space:nowrap;
   }
   .settings-btn:hover{color:var(--text-hi);}
   .settings-overlay{
     position:fixed;inset:0;z-index:90;
-    background:rgba(10,11,16,.88);
+    background:rgba(10,12,18,.55);
+    backdrop-filter:blur(4px);-webkit-backdrop-filter:blur(4px);
     display:flex;align-items:flex-start;justify-content:center;
     opacity:0;pointer-events:none;transition:opacity .25s ease;
     padding:24px 16px;overflow-y:auto;
   }
   .settings-overlay.show{opacity:1;pointer-events:auto;}
   .settings-modal{
-    background:var(--panel-2);border:1px solid var(--hairline);border-radius:14px;
+    background:#f7f8fa;border:none;border-radius:16px;
     padding:24px 20px;max-width:520px;width:100%;margin:auto;
     display:flex;flex-direction:column;gap:0;
+    box-shadow:0 8px 32px rgba(0,0,0,.18),0 2px 8px rgba(0,0,0,.08);
+    color:#1f2430;
   }
   .settings-modal-header{display:flex;align-items:center;justify-content:space-between;margin-bottom:18px;}
-  .settings-modal-header h2{font-size:17px;font-weight:700;margin:0;color:var(--text-hi);}
+  .settings-modal-header h2{font-size:17px;font-weight:700;margin:0;color:#1f2430;}
   .settings-modal-close{
-    width:32px;height:32px;border-radius:50%;border:1px solid var(--hairline);
-    background:var(--panel);color:var(--text-lo);font-size:18px;cursor:pointer;
+    width:32px;height:32px;border-radius:50%;border:1px solid #d0d3da;
+    background:#e8eaef;color:#6b7080;font-size:18px;cursor:pointer;
     display:flex;align-items:center;justify-content:center;padding:0;flex-shrink:0;
   }
-  .settings-modal-close:hover{color:var(--text-hi);}
+  .settings-modal-close:hover{color:#1f2430;}
   .settings-intro{
-    background:var(--panel);border:1px solid var(--hairline);border-radius:10px;
+    background:#eef0f4;border:1px solid #d8dbe2;border-radius:10px;
     padding:12px 14px;margin-bottom:18px;
   }
-  .settings-intro-title{font-size:13px;font-weight:700;color:var(--text-hi);margin-bottom:8px;}
-  .settings-intro-row{font-size:12px;line-height:1.7;color:var(--text-hi);display:flex;align-items:flex-start;gap:6px;margin-bottom:2px;}
+  .settings-intro-title{font-size:13px;font-weight:700;color:#1f2430;margin-bottom:8px;}
+  .settings-intro-sub{font-size:11.5px;color:#8b8f9c;margin-bottom:8px;}
+  .settings-intro-row{font-size:12px;line-height:1.7;color:#3a3f50;display:flex;align-items:flex-start;gap:6px;margin-bottom:2px;}
   .settings-intro-dot{width:8px;height:8px;border-radius:50%;flex-shrink:0;margin-top:5px;}
   .settings-section{margin-bottom:20px;}
   .settings-section:last-child{margin-bottom:0;}
   .settings-section-head{display:flex;align-items:center;gap:8px;flex-wrap:wrap;margin-bottom:8px;}
   .settings-section-head h3{margin:0;}
-  .settings-section h3{font-size:15px;font-weight:700;margin:0 0 8px;color:var(--text-hi);}
+  .settings-section h3{font-size:15px;font-weight:700;margin:0 0 8px;color:#1f2430;}
   .settings-badge{
     font-size:11px;font-weight:700;padding:3px 8px;border-radius:999px;white-space:nowrap;
   }
-  .badge-required{background:rgba(255,93,58,.18);color:#ffab91;border:1px solid rgba(255,93,58,.35);}
-  .badge-optional{background:rgba(100,181,246,.15);color:#90caf9;border:1px solid rgba(100,181,246,.35);}
+  .badge-required{background:rgba(211,47,47,.1);color:#c62828;border:1px solid rgba(211,47,47,.25);}
+  .badge-optional{background:rgba(44,92,197,.1);color:#2c5cc5;border:1px solid rgba(44,92,197,.25);}
   .settings-desc{
-    font-size:13px;line-height:1.75;color:var(--text-hi);margin-bottom:12px;
+    font-size:13px;line-height:1.75;color:#3a3f50;margin-bottom:12px;
     line-break:strict;text-wrap:pretty;
   }
   .settings-steps{
-    background:rgba(26,35,126,.15);border:1px solid rgba(26,35,126,.3);border-radius:10px;
+    background:#eef3ff;border:1px solid #c5d4f5;border-radius:10px;
     padding:14px 16px;margin-bottom:10px;
   }
-  .settings-steps-title{font-size:13px;font-weight:700;color:#7986cb;margin-bottom:8px;}
-  .settings-step{display:flex;gap:6px;margin-bottom:4px;font-size:13px;line-height:1.65;color:var(--text-hi);}
-  .settings-step-num{font-weight:700;color:#7986cb;flex-shrink:0;min-width:20px;text-align:right;}
+  .settings-steps-title{font-size:13px;font-weight:700;color:#2c5cc5;margin-bottom:8px;}
+  .settings-step{display:flex;gap:6px;margin-bottom:4px;font-size:13px;line-height:1.65;color:#3a3f50;}
+  .settings-step-num{font-weight:700;color:#2c5cc5;flex-shrink:0;min-width:20px;text-align:right;}
   .settings-step-link{
-    display:inline-block;color:#64b5f6;text-decoration:underline;font-size:13px;
+    display:inline-block;color:#2c5cc5;text-decoration:underline;font-size:13px;
     margin:2px 0 4px 26px;word-break:break-all;
   }
-  .settings-step-link:hover{color:#90caf9;}
+  .settings-step-link:hover{color:#1a4aaa;}
   .settings-warn{
-    background:rgba(191,54,12,.12);border:1px solid rgba(191,54,12,.3);border-radius:10px;
+    background:#fff1e8;border:1px solid #f5c8a8;border-radius:10px;
     padding:12px 14px;margin-bottom:12px;font-size:13px;font-weight:700;line-height:1.65;
-    color:#ffab91;
+    color:#8a3b0b;
   }
   .settings-highlight{
-    background:rgba(100,181,246,.1);border:2px solid rgba(100,181,246,.5);border-radius:10px;
+    background:#eef3ff;border:2px solid #7ea6f5;border-radius:10px;
     padding:14px 16px;margin-bottom:10px;
   }
-  .settings-highlight-title{font-size:13px;font-weight:700;color:#90caf9;margin-bottom:8px;}
+  .settings-highlight-title{font-size:13px;font-weight:700;color:#2c5cc5;margin-bottom:8px;}
   .settings-key-row{display:flex;align-items:center;gap:8px;margin-bottom:6px;}
-  .settings-key-label{font-size:13px;color:var(--text-lo);flex-shrink:0;}
+  .settings-key-label{font-size:13px;color:#6b7080;flex-shrink:0;}
   .settings-key-input{
     flex:1;padding:8px 10px;border-radius:8px;
-    border:1px solid var(--hairline);background:var(--ink);color:var(--text-hi);font-size:13px;
+    border:1px solid #d0d3da;background:#fff;color:#1f2430;font-size:13px;
     font-family:ui-monospace,"SF Mono","JetBrains Mono",Menlo,Consolas,monospace;
   }
-  .settings-key-input:focus{outline:none;border-color:var(--accent-2);}
+  .settings-key-input:focus{outline:none;border-color:#2c5cc5;}
   .settings-show-toggle{
     display:flex;align-items:center;gap:4px;cursor:pointer;flex-shrink:0;
-    font-size:12px;color:var(--text-lo);user-select:none;
+    font-size:12px;color:#6b7080;user-select:none;
   }
   .settings-show-toggle input{margin:0;cursor:pointer;}
   .settings-safety{
-    font-size:12px;line-height:1.6;color:var(--text-lo);
-    background:var(--panel);border-radius:8px;padding:10px 12px;margin:10px 0;
+    font-size:12px;line-height:1.6;color:#6b7080;
+    background:#eef0f4;border-radius:8px;padding:10px 12px;margin:10px 0;
   }
   .settings-msg{
     font-size:13px;font-weight:700;margin:8px 0 4px;min-height:20px;
     line-height:1.5;
   }
-  .settings-msg.error{color:#ef5350;}
-  .settings-msg.success{color:#66bb6a;}
+  .settings-msg.error{color:#d32f2f;}
+  .settings-msg.success{color:#2e7d32;}
   .settings-actions{display:flex;gap:8px;margin-top:10px;}
   .settings-actions button{
     padding:9px 14px;border-radius:8px;border:none;font-weight:700;font-size:13px;cursor:pointer;
     white-space:nowrap;
   }
-  .save-key{background:var(--accent-2);color:#04211e;}
-  .clear-key{background:var(--panel);color:var(--text-lo);border:1px solid var(--hairline) !important;}
-  .test-key{background:#1a237e;color:#c5cae9;border:1px solid rgba(26,35,126,.5) !important;}
+  .save-key{background:#1fb8ab;color:#fff;}
+  .clear-key{background:#fff;color:#6b7080;border:1px solid #d0d3da !important;}
+  .test-key{background:#eef3ff;color:#2c5cc5;border:1px solid #c5d4f5 !important;}
   .test-key:disabled{opacity:.5;cursor:default;}
-  .settings-sep{border:none;border-top:1px solid var(--hairline);margin:16px 0;}
+  .settings-sep{border:none;border-top:1px solid #e0e2e8;margin:16px 0;}
   .chan-icon{overflow:hidden;}
   .chan-icon img{width:100%;height:100%;border-radius:50%;object-fit:cover;display:block;}
 
-  .status-line{
-    flex:0 0 auto;padding:4px 18px;font-size:11.5px;color:var(--text-lo);
-    min-height:22px;background:var(--panel);border-bottom:1px solid var(--hairline);
+  .toolbar-row{
+    flex:0 0 auto;display:flex;align-items:center;gap:12px;
+    padding:4px 18px;background:var(--panel);border-bottom:1px solid var(--hairline);
+    min-height:36px;
   }
-  .status-line.warn{color:var(--accent);}
+  .toolbar-row .chan-icon{width:28px;height:28px;font-size:12px;}
 
   /* ---------- main (watch) ---------- */
   main{flex:1;display:flex;min-height:0;position:relative;}
@@ -345,12 +343,11 @@
   /* ---------- fab area (jump + playback + shutter) ---------- */
   .fab-area{
     flex:0 1 180px;
-    display:flex;flex-direction:column;align-items:center;gap:12px;
-    /* 上詰め: NotebookLMボタンを常にカラム最上部に配置する */
+    display:flex;flex-direction:column;align-items:center;gap:8px;
     justify-content:flex-start;
-    overflow-y:auto;
+    overflow:hidden;
     background:var(--video);
-    padding:16px 12px;
+    padding:10px 12px;
     border-left:1px solid var(--hairline);
     border-right:1px solid var(--hairline);
   }
@@ -503,7 +500,21 @@
     font-size:11.5px;line-height:1.5;resize:vertical;font-family:inherit;
   }
   .transcript-area textarea:focus{outline:none;border-color:var(--accent-2);}
-  .transcript-info{font-size:10.5px;color:var(--text-lo);line-height:1.4;margin-top:2px;}
+  .transcript-steps{
+    display:flex;flex-direction:column;gap:1px;
+    font-size:10.5px;color:var(--text-lo);padding:2px 0 4px;line-height:1.4;
+  }
+  .summarize-status{
+    font-size:10.5px;color:var(--text-lo);text-align:center;
+    line-height:1.3;width:100%;min-height:14px;
+  }
+  .summarize-status.ready{color:var(--accent-2);font-weight:700;}
+  .api-key-status{
+    font-size:10.5px;text-align:center;line-height:1.3;width:100%;min-height:14px;
+  }
+  .api-key-status .not-set{color:var(--text-lo);}
+  .api-key-status .set-link{color:var(--accent);cursor:pointer;text-decoration:underline;font-size:10px;display:inline-block;}
+  .api-key-status .is-set{color:var(--accent-2);}
 
   /* ---------- summarize button ---------- */
   .btn-summarize{
@@ -556,7 +567,6 @@
   <div class="loadbar">
     <input id="videoInput" type="text" placeholder="YouTube URLまたはIDを貼り付け">
     <button id="loadBtn" class="load-btn">読み込む</button>
-    <div class="chan-row" id="chanRow" title="よく見るチャンネル"></div>
     <input type="file" accept="video/*" id="localFileInput" hidden>
     <button id="localFileBtn" class="load-btn" style="display:none;">ファイルを選択</button>
     <span class="local-filename" id="localFilename" style="display:none;" title=""></span>
@@ -564,10 +574,19 @@
   </div>
   <span class="share-status" id="shareStatus"><span class="dot"></span>画面共有中 <button class="stop-share" id="stopShareBtn">停止</button></span>
   <div class="settings-wrap">
-    <button class="settings-btn" id="settingsBtn" title="設定">⚙</button>
+    <button class="settings-btn" id="settingsBtn" title="設定">⚙ 設定</button>
   </div>
 </header>
-<div class="status-line" id="statusLine"></div>
+<div class="toolbar-row" id="toolbarRow">
+  <div class="now-time mono" id="nowTime">0:00</div>
+  <div class="bm-list" id="bmList">
+    <label class="bm-row"><input type="checkbox" class="bm-check"><span class="bm-time mono empty">--:--</span></label>
+    <label class="bm-row"><input type="checkbox" class="bm-check"><span class="bm-time mono empty">--:--</span></label>
+    <label class="bm-row"><input type="checkbox" class="bm-check"><span class="bm-time mono empty">--:--</span></label>
+  </div>
+  <div style="flex:1;"></div>
+  <div class="chan-row" id="chanRow" title="よく見るチャンネル"></div>
+</div>
 
 <main id="view-watch">
   <div class="video-pane" id="videoPane">
@@ -589,29 +608,9 @@
   </div>
 
   <div class="fab-area" id="fabArea">
-    <button id="notebooklmBtn" class="btn-notebooklm" title="動画URLをコピーしてNotebookLMを開く">NotebookLM</button>
-    <button id="transcribeBtn" class="btn-transcribe" title="現在の再生位置からYouTubeを新しいタブで開く（文字起こしパネルは手動で開いてください）">文字起こし</button>
-    <div class="transcript-section" id="transcriptSection">
-      <button class="transcript-toggle" id="transcriptToggle">📝 字幕テキストを貼り付け</button>
-      <div class="transcript-area" id="transcriptArea">
-        <textarea id="transcriptText" placeholder="YouTubeの「文字起こしを表示」から全文をコピーして貼り付けてください"></textarea>
-        <div class="transcript-info">貼り付け後、タイムスタンプを2つ選んで「要約」を押してください</div>
-      </div>
-    </div>
-    <div class="jumpbar">
-      <div class="now-time mono" id="nowTime">0:00</div>
-      <div class="bm-list" id="bmList">
-        <label class="bm-row"><input type="checkbox" class="bm-check"><span class="bm-time mono empty">--:--</span></label>
-        <label class="bm-row"><input type="checkbox" class="bm-check"><span class="bm-time mono empty">--:--</span></label>
-        <label class="bm-row"><input type="checkbox" class="bm-check"><span class="bm-time mono empty">--:--</span></label>
-        <label class="bm-row"><input type="checkbox" class="bm-check"><span class="bm-time mono empty">--:--</span></label>
-        <label class="bm-row"><input type="checkbox" class="bm-check"><span class="bm-time mono empty">--:--</span></label>
-      </div>
-      <div class="bm-actions">
-        <button id="bmCaptureBtn">📌 取得</button>
-        <button id="bmJumpBtn">⏩ ジャンプ</button>
-      </div>
-      <button id="summarizeBtn" class="btn-summarize" disabled>✨ 要約</button>
+    <div class="bm-actions">
+      <button id="bmCaptureBtn">📌 取得</button>
+      <button id="bmJumpBtn">⏩ ジャンプ</button>
     </div>
     <div class="playback-controls">
       <button class="ctrl-btn" id="playPauseBtn" aria-label="再生">▶</button>
@@ -628,6 +627,23 @@
       </div>
     </div>
     <button class="fab" id="shutterBtn" aria-label="キャプチャ（Cキー）">📷<span class="key-hint">C キー</span></button>
+    <button id="notebooklmBtn" class="btn-notebooklm" title="動画URLをコピーしてNotebookLMを開く">NotebookLM</button>
+    <button id="transcribeBtn" class="btn-transcribe" title="現在の再生位置からYouTubeを新しいタブで開く（文字起こしパネルは手動で開いてください）">文字起こし</button>
+    <div class="transcript-section" id="transcriptSection">
+      <button class="transcript-toggle" id="transcriptToggle">📝 字幕テキストを貼り付け</button>
+      <div class="transcript-area" id="transcriptArea">
+        <div class="transcript-steps">
+          <span>①「文字起こし」で字幕を開く</span>
+          <span>② コピーして下に貼る</span>
+          <span>③ タイムスタンプを2つ選ぶ</span>
+          <span>④「要約」を押す</span>
+        </div>
+        <textarea id="transcriptText" placeholder="YouTubeの「文字起こしを表示」から全文をコピーして貼り付けてください"></textarea>
+      </div>
+    </div>
+    <div class="summarize-status" id="summarizeStatus"></div>
+    <div class="api-key-status" id="apiKeyStatus"></div>
+    <button id="summarizeBtn" class="btn-summarize" disabled>✨ 要約</button>
   </div>
 
   <div class="side-pane">
@@ -726,9 +742,10 @@
 
     <div class="settings-intro">
       <div class="settings-intro-title">このアプリで使う「2つの鍵」について</div>
+      <div class="settings-intro-sub">キーの変更・削除など、あとから見直すときもこの画面をお使いください</div>
       <div class="settings-intro-row"><span class="settings-intro-dot" style="background:#ff8a65;"></span><span>&nbsp;<b>Anthropic APIキー</b>&nbsp;…&nbsp;字幕の要約に使います。要約機能を使うなら必要です。<b>少額の料金</b>がかかります。</span></div>
       <div class="settings-intro-row"><span class="settings-intro-dot" style="background:#64b5f6;"></span><span>&nbsp;<b>YouTube Data API v3 キー</b>&nbsp;…&nbsp;チャンネルアイコンの表示に使います。<b>任意</b>（なくてもアプリは使えます）。<b>無料</b>です。</span></div>
-      <div class="settings-intro-row" style="color:var(--text-lo);margin-top:4px;"><span>どちらも、入力した鍵はこのブラウザの中だけに保存されます。</span></div>
+      <div class="settings-intro-row" style="color:#8b8f9c;margin-top:4px;"><span>どちらも、入力した鍵はこのブラウザの中だけに保存されます。</span></div>
     </div>
 
     <div class="settings-section">
@@ -741,7 +758,7 @@
         Claudeに作業をお願いするには「APIキー」が必要です。APIキーとは、Claudeを使うための会員証のようなもので、あなた専用の長い文字列です。以下の手順で取得して、下の入力欄に貼り付けてください。
       </div>
 
-      <div class="settings-desc" style="background:var(--panel);border-radius:8px;padding:10px 12px;">
+      <div class="settings-desc" style="background:#eef0f4;border-radius:8px;padding:10px 12px;">
         💰 <b>料金の目安</b>（字幕要約1回ごと。日本語を安全側（1文字＝1.5トークン）で見積もり、1ドル＝150円として計算した概算です。実際のレートや文章量により変わります）<br>
         ・短い範囲（5〜10分程度の字幕）を要約：1回あたり<b>1〜2円程度</b><br>
         ・一度に要約できる最大の長さ（50,000文字）を要約：1回あたり<b>最大でも13円程度</b><br>
@@ -795,10 +812,11 @@
       </div>
       <div class="settings-desc">
         動画一覧に表示する、チャンネルの丸いアイコン画像を取得するために使います。このアプリ自体の動作には必要ありません。入力しなくても、動画の読み込みやキャプチャ、字幕要約はすべて問題なく使えます。<br><br>
-        こちらも「APIキー」という、あなた専用の文字列を使いますが、取得も利用もすべて<b>無料</b>です（クレジットカードの登録も不要です）。
+        こちらも「APIキー」という、あなた専用の文字列を使いますが、取得も利用もすべて<b>無料</b>です（クレジットカードの登録も不要です）。<br><br>
+        チャンネルアイコンが表示されないときは、ここでキーを確認してください。
       </div>
 
-      <div class="settings-desc" style="background:var(--panel);border-radius:8px;padding:10px 12px;">
+      <div class="settings-desc" style="background:#eef0f4;border-radius:8px;padding:10px 12px;">
         💰 <b>料金について</b><br>
         完全に無料です。1日に10,000回分の「無料のひきかえ券（割り当て）」が用意されており、チャンネルアイコンの取得は1回につき券1枚しか使いません。使い切ることはまずありませんが、万一使い切った場合も自動で課金されることはなく、その日は取得が一時的に止まるだけです（翌日またアメリカ時間の深夜に回復します）。
       </div>
@@ -812,7 +830,7 @@
         <div class="settings-step"><span class="settings-step-num">　</span><span>開いた小さなウィンドウの右上にある「新しいプロジェクト」を押します</span></div>
         <div class="settings-step"><span class="settings-step-num">　</span><span>名前は何でもかまいません。入力して「作成」を押します</span></div>
         <div class="settings-step"><span class="settings-step-num">　</span><span>作成には数十秒かかることがあります。完了したら、同じボタンをもう一度押して、作ったプロジェクトが選ばれていることを確認します</span></div>
-        <div class="settings-step"><span class="settings-step-num">　</span><span style="color:var(--text-lo);">※ すでにGoogle Cloudのプロジェクトをお持ちの場合は、新しく作らず、そのプロジェクトを使っても大丈夫です</span></div>
+        <div class="settings-step"><span class="settings-step-num">　</span><span style="color:#8b8f9c;">※ すでにGoogle Cloudのプロジェクトをお持ちの場合は、新しく作らず、そのプロジェクトを使っても大丈夫です</span></div>
       </div>
 
       <div class="settings-highlight">
@@ -826,10 +844,10 @@
 
       <div class="settings-steps">
         <div class="settings-step"><span class="settings-step-num">5.</span><span>左のメニューから「APIとサービス」→「認証情報」を開き、上部の「認証情報を作成」ボタンを押して「API キー」を選びます</span></div>
-        <div class="settings-step"><span class="settings-step-num">　</span><span style="color:var(--text-lo);">※ 入力の途中で画面が消えてしまっても、やり直しは問題ありません。もう一度同じ手順をたどればOKです</span></div>
+        <div class="settings-step"><span class="settings-step-num">　</span><span style="color:#8b8f9c;">※ 入力の途中で画面が消えてしまっても、やり直しは問題ありません。もう一度同じ手順をたどればOKです</span></div>
         <div class="settings-step"><span class="settings-step-num">6.</span><span>表示された文字列（AIzaで始まる文字列）をコピーして、下の入力欄に貼り付けます</span></div>
         <div class="settings-step"><span class="settings-step-num">7.</span><span>（推奨・安全のため）作成したキーの「キーを制限」を押します。「APIの制限」は<b>必須の項目</b>（*印が付いています）なので、「キーを制限」を選び、プルダウンを押して「YouTube Data API v3」にチェックを入れ、「OK」を押してから保存します。これで、万一この鍵が漏れても他のサービスには使われません</span></div>
-        <div class="settings-step"><span class="settings-step-num">　</span><span style="color:var(--text-lo);">※ プルダウンの一覧に「YouTube Data API v3」が出てこないときは、手順4がまだ済んでいません。画面に出ている「APIライブラリ」のリンクから手順4に戻ってください</span></div>
+        <div class="settings-step"><span class="settings-step-num">　</span><span style="color:#8b8f9c;">※ プルダウンの一覧に「YouTube Data API v3」が出てこないときは、手順4がまだ済んでいません。画面に出ている「APIライブラリ」のリンクから手順4に戻ってください</span></div>
       </div>
 
       <div class="settings-warn">⚠ このキーは無料枠のみなので高額請求の心配はありませんが、念のため他人には教えないでください。手順7の制限をかけておくと、より安全です。</div>
@@ -858,10 +876,15 @@
 <script src="https://www.youtube.com/iframe_api"></script>
 <script>
 (function(){
-  const statusLine = document.getElementById('statusLine');
+  const toast = document.getElementById('toast');
+  function showToast(msg, duration){
+    toast.textContent = msg;
+    toast.classList.add('show');
+    clearTimeout(showToast._t);
+    showToast._t = setTimeout(()=>toast.classList.remove('show'), duration || 2400);
+  }
   function setStatus(msg, warn){
-    statusLine.textContent = msg || '';
-    statusLine.classList.toggle('warn', !!warn);
+    if(msg) showToast(msg, warn ? 5000 : 3000);
   }
 
   const gdmSupported = !!(window.isSecureContext && navigator.mediaDevices && navigator.mediaDevices.getDisplayMedia);
@@ -1030,7 +1053,10 @@
     youtubeMsg.className = 'settings-msg';
     settingsOverlay.classList.add('show');
   }
-  function closeSettings(){ settingsOverlay.classList.remove('show'); }
+  function closeSettings(){
+    settingsOverlay.classList.remove('show');
+    if(typeof updateApiKeyStatus === 'function') updateApiKeyStatus();
+  }
 
   settingsBtn.addEventListener('click', openSettings);
   document.getElementById('settingsClose').addEventListener('click', closeSettings);
@@ -1061,6 +1087,7 @@
     setAnthropicKey(key);
     showAnthropicMsg('保存しました', false);
     showToast('Anthropic APIキーを保存しました');
+    updateApiKeyStatus();
   });
 
   document.getElementById('clearAnthropicKey').addEventListener('click', ()=>{
@@ -1068,6 +1095,7 @@
     anthropicKeyInput.value = '';
     anthropicMsg.textContent = '';
     anthropicMsg.className = 'settings-msg';
+    updateApiKeyStatus();
     showToast('Anthropic APIキーをクリアしました');
   });
 
@@ -1492,14 +1520,38 @@
   const transcriptText = document.getElementById('transcriptText');
   const transcriptToggle = document.getElementById('transcriptToggle');
   const transcriptArea = document.getElementById('transcriptArea');
+  const summarizeStatusEl = document.getElementById('summarizeStatus');
+  const apiKeyStatusEl = document.getElementById('apiKeyStatus');
   let bmCheckOrder = [];
   let summarizing = false;
+
+  function updateApiKeyStatus(){
+    const hasKey = !!getAnthropicKey();
+    if(hasKey){
+      apiKeyStatusEl.innerHTML = '<span class="is-set">Anthropic APIキー：設定済み ✓</span>';
+    }else{
+      apiKeyStatusEl.innerHTML = '<span class="not-set">Anthropic APIキー：未設定</span> <span class="set-link" id="openSettingsLink">設定を開く</span>';
+      const link = document.getElementById('openSettingsLink');
+      if(link) link.addEventListener('click', openSettings);
+    }
+  }
 
   function updateSummarizeBtn(){
     if(summarizing){ summarizeBtn.disabled = true; return; }
     const checkedCount = bmChecks.filter(c=>c.checked).length;
     const hasTranscript = transcriptText.value.trim().length > 0;
     summarizeBtn.disabled = !(checkedCount === 2 && hasTranscript);
+    if(!hasTranscript){
+      summarizeStatusEl.textContent = 'あと：字幕の貼り付け';
+      summarizeStatusEl.className = 'summarize-status';
+    }else if(checkedCount < 2){
+      summarizeStatusEl.textContent = 'あと：タイムスタンプを2つ選ぶ';
+      summarizeStatusEl.className = 'summarize-status';
+    }else{
+      summarizeStatusEl.textContent = '準備OK';
+      summarizeStatusEl.className = 'summarize-status ready';
+    }
+    updateApiKeyStatus();
   }
 
   bmChecks.forEach((cb, i)=>{
@@ -2066,13 +2118,6 @@
   document.getElementById('revRedo').addEventListener('click', ()=>showView('organize'));
 
   // ---------------- bulk save (download) ----------------
-  const toast = document.getElementById('toast');
-  function showToast(msg){
-    toast.textContent = msg;
-    toast.classList.add('show');
-    clearTimeout(showToast._t);
-    showToast._t = setTimeout(()=>toast.classList.remove('show'), 2400);
-  }
 
   function dataUrlToBlob(dataUrl){
     const [meta, b64] = dataUrl.split(',');
@@ -2190,6 +2235,11 @@
 
   summarizeBtn.addEventListener('click', async ()=>{
     if(summarizing) return;
+    if(!getAnthropicKey()){
+      showToast('Anthropic APIキーを設定してください', true);
+      openSettings();
+      return;
+    }
     const checkedIndices = bmChecks.map((c,i)=>c.checked ? i : -1).filter(i=>i >= 0);
     if(checkedIndices.length !== 2){
       showToast('タイムスタンプを2つ選んでください');
@@ -2251,6 +2301,8 @@
   document.getElementById('summaryCloseBtn').addEventListener('click', ()=>{
     document.getElementById('summaryOverlay').classList.remove('show');
   });
+
+  updateSummarizeBtn();
 })();
 </script>
 </body>
