@@ -358,7 +358,7 @@
     padding:12px 9px;
   }
 
-  .playback-controls{display:flex;gap:8px;}
+  .playback-controls{display:flex;align-items:center;gap:8px;}
   .ctrl-btn{
     width:48px;height:48px;border-radius:50%;
     border:2px solid var(--hairline);background:var(--panel-2);
@@ -383,11 +383,12 @@
     font-size:10px;color:var(--text-lo);white-space:nowrap;letter-spacing:.04em;margin-top:4px;
   }
 
-  /* 10秒戻る（再生コントロールとカメラの間） */
+  /* 10秒戻る（再生ボタンの右に横並び） */
   .back10-btn{
-    padding:7px 16px;border-radius:999px;border:2px solid var(--hairline);
-    background:var(--panel-2);color:var(--text-hi);font-size:12px;font-weight:700;cursor:pointer;
-    white-space:nowrap;transition:filter .12s ease, transform .12s ease;
+    height:48px;padding:0 10px;border-radius:999px;border:2px solid var(--hairline);
+    background:var(--panel-2);color:var(--text-hi);font-size:11.5px;font-weight:700;cursor:pointer;
+    white-space:nowrap;flex:0 0 auto;display:flex;align-items:center;justify-content:center;
+    transition:filter .12s ease, transform .12s ease;
   }
   .back10-btn:hover{filter:brightness(1.15);border-color:var(--accent-2);}
   .back10-btn:active{transform:scale(.94);}
@@ -651,8 +652,8 @@
     <div class="fab-group fab-group-playback">
       <div class="playback-controls">
         <button class="ctrl-btn" id="playPauseBtn" aria-label="再生">▶</button>
+        <button class="back10-btn" id="back10Btn" aria-label="10秒戻る">⏪ 10秒戻る</button>
       </div>
-      <button class="back10-btn" id="back10Btn" aria-label="10秒戻る">⏪ 10秒戻る</button>
       <div class="frame-controls">
         <div class="frame-col">
           <button class="frame-btn" id="frameBack5Btn" aria-label="5コマ戻る（&lt;キー）" title="5コマ戻る（&lt;キー）"><span class="glyph-mirror">▶▶▏</span></button>
@@ -850,13 +851,14 @@
       </div>
       <div class="settings-desc">
         動画一覧に表示する、チャンネルの丸いアイコン画像を取得するために使います。このアプリ自体の動作には必要ありません。入力しなくても、動画の読み込みやキャプチャ、字幕要約はすべて問題なく使えます。<br><br>
-        こちらも「APIキー」という、あなた専用の文字列を使いますが、取得も利用もすべて<b>無料</b>です（クレジットカードの登録も不要です）。<br><br>
+        こちらも「APIキー」という、あなた専用の文字列を使います。キーの取得も利用も<b>無料</b>です（Googleの仕様で、プロジェクト作成時にカード登録を求められることがありますが、料金は発生しません）。<br><br>
         チャンネルアイコンが表示されないときは、ここでキーを確認してください。
       </div>
 
       <div class="settings-desc" style="background:#eef0f4;border-radius:8px;padding:10px 12px;">
         💰 <b>料金について</b><br>
-        完全に無料です。1日に10,000回分の「無料のひきかえ券（割り当て）」が用意されており、チャンネルアイコンの取得は1回につき券1枚しか使いません。使い切ることはまずありませんが、万一使い切った場合も自動で課金されることはなく、その日は取得が一時的に止まるだけです（翌日またアメリカ時間の深夜に回復します）。
+        完全に無料です。1日に10,000回分の「無料のひきかえ券（割り当て）」が用意されており、チャンネルアイコンの取得は1回につき券1枚しか使いません。使い切ることはまずありませんが、万一使い切った場合も自動で課金されることはなく、その日は取得が一時的に止まるだけです（翌日またアメリカ時間の深夜に回復します）。<br>
+        ※ 無料枠の範囲内であれば、カードを登録しても課金されません。
       </div>
 
       <div class="settings-steps">
@@ -866,9 +868,24 @@
         <div class="settings-step"><span class="settings-step-num">2.</span><span>Googleアカウントでログインします（普段お使いのGoogleアカウントでかまいません）</span></div>
         <div class="settings-step"><span class="settings-step-num">3.</span><span>画面左上、「Google Cloud」のロゴの右にある丸いボタンを押します（すでにプロジェクトがある場合はそのプロジェクト名、ない場合は「プロジェクトを選択」と表示されています）</span></div>
         <div class="settings-step"><span class="settings-step-num">　</span><span>開いた小さなウィンドウの右上にある「新しいプロジェクト」を押します</span></div>
-        <div class="settings-step"><span class="settings-step-num">　</span><span>名前は何でもかまいません。入力して「作成」を押します</span></div>
-        <div class="settings-step"><span class="settings-step-num">　</span><span>作成には数十秒かかることがあります。完了したら、同じボタンをもう一度押して、作ったプロジェクトが選ばれていることを確認します</span></div>
+        <div class="settings-step"><span class="settings-step-num">　</span><span>プロジェクト名は何でもかまいません。<br>「請求先アカウント」の欄が赤くなっている場合は、<br>▼を押して一覧から選びます</span></div>
+        <div class="settings-step"><span class="settings-step-num">　</span><span>「作成」を押します。<br>作成には数十秒かかることがあります。<br>完了したら、同じボタンをもう一度押して、<br>作ったプロジェクトが選ばれていることを確認します</span></div>
         <div class="settings-step"><span class="settings-step-num">　</span><span style="color:#8b8f9c;">※ すでにGoogle Cloudのプロジェクトをお持ちの場合は、新しく作らず、そのプロジェクトを使っても大丈夫です</span></div>
+      </div>
+
+      <div class="settings-warn">⚠ 「請求先アカウントは必須です」と赤く表示されたとき<br>
+        ・一覧に請求先アカウントが出ている場合は、<br>
+        それを選んで「作成」を押してください<br>
+        ・一覧が空の場合は、Googleが本人確認のために、<br>
+        支払い方法（クレジットカードなど）の登録を求めています。<br>
+        YouTube Data APIの利用自体は無料枠の範囲で課金されません。<br>
+        登録だけで料金が発生することもありません。<br>
+        ・カードの登録に抵抗がある場合は、このキーは任意なので、<br>
+        入力せずに進めても、動画の読み込みやキャプチャ、<br>
+        字幕要約は問題なく使えます<br>
+        （チャンネルのアイコンだけ表示されません）<br>
+        ・「組織なし」「親リソース 組織なし」のままで大丈夫です。<br>
+        変更しないでください
       </div>
 
       <div class="settings-highlight">
