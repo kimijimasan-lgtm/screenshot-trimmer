@@ -1553,12 +1553,13 @@
   document.getElementById('bmCaptureBtn').addEventListener('click', ()=>{
     const ap = getActivePlayer();
     if(!ap.ready()) return;
-    bmTimes[bmNext] = ap.currentTime();
+    const i = bmNext;
+    bmTimes[i] = ap.currentTime();
     renderBookmarks();
     bmNext = (bmNext + 1) % bmTimes.length;
+    checkBookmark(i);
   });
 
-  // 2つまで選択可能（3つ目を入れたら最古のチェックを外す）
   const summarizeBtn = document.getElementById('summarizeBtn');
   const transcriptText = document.getElementById('transcriptText');
   const transcriptToggle = document.getElementById('transcriptToggle');
@@ -1598,19 +1599,26 @@
     updateApiKeyStatus();
   }
 
+  // チェックを入れる（2つまで。3つ目を入れたら最古のチェックを外す）。「取得」時の自動チェックとも共用
+  function checkBookmark(i){
+    bmChecks[i].checked = true;
+    bmCheckOrder = bmCheckOrder.filter(idx=>idx !== i);
+    bmCheckOrder.push(i);
+    if(bmCheckOrder.length > 2){
+      const oldest = bmCheckOrder.shift();
+      bmChecks[oldest].checked = false;
+    }
+    updateSummarizeBtn();
+  }
+
   bmChecks.forEach((cb, i)=>{
     cb.addEventListener('change', ()=>{
       if(cb.checked){
-        bmCheckOrder = bmCheckOrder.filter(idx=>idx !== i);
-        bmCheckOrder.push(i);
-        if(bmCheckOrder.length > 2){
-          const oldest = bmCheckOrder.shift();
-          bmChecks[oldest].checked = false;
-        }
+        checkBookmark(i);
       }else{
         bmCheckOrder = bmCheckOrder.filter(idx=>idx !== i);
+        updateSummarizeBtn();
       }
-      updateSummarizeBtn();
     });
   });
 
