@@ -647,6 +647,9 @@
         <button id="bmCaptureBtn">📌 取得</button>
         <button id="bmJumpBtn">⏩ ジャンプ</button>
       </div>
+      <div class="bm-actions">
+        <button id="bmLinkBtn" title="チェックした2つのタイムスタンプから、区間つきの再生リンクを作ってコピーします">🔗 区間リンクをコピー</button>
+      </div>
     </div>
 
     <div class="fab-group fab-group-playback">
@@ -1618,6 +1621,34 @@
     const ap = getActivePlayer();
     ap.seekTo(target);
     ap.play();
+  });
+
+  // 区間リンクをコピー：チェックした2点（早い方=開始・遅い方=終了）から t=&end= 付きのYouTubeリンクを作る
+  document.getElementById('bmLinkBtn').addEventListener('click', async ()=>{
+    if(currentMode === 'local'){
+      showToast('この機能はYouTube動画のときだけ使えます');
+      return;
+    }
+    if(!currentVideoId){
+      showToast('先に動画を読み込んでください');
+      return;
+    }
+    const checkedTimes = bmChecks
+      .map((c,i)=> c.checked ? bmTimes[i] : null)
+      .filter(t=> t !== null && t !== undefined);
+    if(checkedTimes.length !== 2){
+      showToast('タイムスタンプを2つチェックしてください');
+      return;
+    }
+    const startSec = Math.floor(Math.min(...checkedTimes));
+    const endSec = Math.floor(Math.max(...checkedTimes));
+    const url = 'https://youtu.be/' + currentVideoId + '?t=' + startSec + '&end=' + endSec;
+    try{
+      await navigator.clipboard.writeText(url);
+      showToast('区間リンクをコピーしました（' + fmtTime(startSec) + '〜' + fmtTime(endSec) + '）');
+    }catch(e){
+      showToast('コピーに失敗しました', true);
+    }
   });
 
   // ---------------- playback controls ----------------
