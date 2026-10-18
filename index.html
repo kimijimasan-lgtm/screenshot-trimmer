@@ -573,7 +573,8 @@
   .summary-actions button{
     flex:1;padding:10px;border-radius:8px;border:none;font-weight:700;font-size:13px;cursor:pointer;
   }
-  .summary-copy{background:var(--accent-2);color:#04211e;}
+  .summary-copy{background:var(--accent-2);color:#04211e;transition:background .15s ease;}
+  .summary-copy.copied{background:#4ade80;}
   .summary-close{background:var(--panel);color:var(--text-lo);border:1px solid var(--hairline) !important;}
   .summary-close:hover{color:var(--text-hi);}
 </style>
@@ -2450,9 +2451,11 @@
 
     try{
       const summary = await callClaudeForSummary(extracted, startSec, endSec);
-      try{ await navigator.clipboard.writeText(summary); showToast('クリップボードにコピーしました'); }catch(e){}
+      let autoCopied = false;
+      try{ await navigator.clipboard.writeText(summary); autoCopied = true; }catch(e){}
       document.getElementById('summaryText').textContent = summary;
       document.getElementById('summaryOverlay').classList.add('show');
+      if(autoCopied){ showSummaryCopied(document.getElementById('summaryCopyBtn')); showToast('要約をコピーしました'); }
     }catch(err){
       setStatus(err.message, true);
     }finally{
@@ -2463,10 +2466,28 @@
   });
 
   // summary overlay handlers
+  let summaryCopyTimer = null;
+  function showSummaryCopied(btn){
+    if(summaryCopyTimer) clearTimeout(summaryCopyTimer);
+    btn.textContent = '✓ コピーしました';
+    btn.classList.add('copied');
+    summaryCopyTimer = setTimeout(()=>{
+      btn.textContent = 'コピー';
+      btn.classList.remove('copied');
+      summaryCopyTimer = null;
+    }, 2000);
+  }
   document.getElementById('summaryCopyBtn').addEventListener('click', async ()=>{
+    const btn = document.getElementById('summaryCopyBtn');
     const text = document.getElementById('summaryText').textContent;
-    try{ await navigator.clipboard.writeText(text); showToast('クリップボードにコピーしました'); }
-    catch(e){ setStatus('コピーに失敗しました', true); }
+    try{
+      await navigator.clipboard.writeText(text);
+      const already = btn.classList.contains('copied');
+      showSummaryCopied(btn);
+      if(!already) showToast('要約をコピーしました');
+    }catch(e){
+      showToast('コピーできませんでした。文字を選んで Ctrl+C でコピーしてください', 4000);
+    }
   });
   document.getElementById('summaryCloseBtn').addEventListener('click', ()=>{
     document.getElementById('summaryOverlay').classList.remove('show');
