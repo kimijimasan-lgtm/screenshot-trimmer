@@ -100,6 +100,7 @@
     cursor:pointer;line-height:1.15;white-space:nowrap;
   }
   .btn-transcribe:hover{filter:brightness(1.06);}
+  .btn-transcribe:disabled{opacity:0.6;cursor:not-allowed;filter:none;}
   .now-time{
     font-size:32px;font-weight:800;color:var(--accent);
     background:var(--ink);border:1px solid var(--hairline);border-radius:8px;
@@ -1446,16 +1447,22 @@
     maybeOfferChannel(id);
   }
 
-  // 動画ページを新しいタブで開き、説明欄の「文字起こしを表示」からのコピーを案内する
-  document.getElementById('transcribeBtn').addEventListener('click', ()=>{
-    if(currentMode === 'local'){
-      showToast('ローカル動画モードでは使えません。YouTubeモードに切り替えて動画を読み込んでください');
-      return;
-    }
-    if(!currentVideoId){
-      showToast('先にYouTube動画を読み込んでください');
-      return;
-    }
+  // 字幕取得: サーバーがあれば自動取得、なければ動画ページを開く
+  let transcriptServerAvailable = false;
+  const transcribeBtn = document.getElementById('transcribeBtn');
+  (async function(){
+    try{
+      const c = new AbortController();
+      const t = setTimeout(()=> c.abort(), 2000);
+      const r = await fetch('/api/health', {signal: c.signal});
+      clearTimeout(t);
+      if(r.ok){
+        transcriptServerAvailable = true;
+        transcribeBtn.title = '字幕を自動で取得します';
+      }
+    }catch(e){}
+  })();
+  function openVideoPageForTranscript(){
     const checkedTimes = bmChecks
       .map((c,i)=> c.checked ? bmTimes[i] : null)
       .filter(t=> t !== null && t !== undefined);
@@ -1465,6 +1472,42 @@
     }
     window.open(url, '_blank');
     showToast('動画の説明欄の「文字起こしを表示」から全文をコピーして、戻って「字幕を貼り付け」に貼ってください', 5000);
+  }
+  transcribeBtn.addEventListener('click', async ()=>{
+    if(currentMode === 'local'){
+      showToast('ローカル動画モードでは使えません。YouTubeモードに切り替えて動画を読み込んでください');
+      return;
+    }
+    if(!currentVideoId){
+      showToast('先にYouTube動画を読み込んでください');
+      return;
+    }
+    if(!transcriptServerAvailable){
+      openVideoPageForTranscript();
+      return;
+    }
+    transcribeBtn.disabled = true;
+    transcribeBtn.textContent = '字幕を取得中…';
+    try{
+      const res = await fetch('/api/transcript?v=' + encodeURIComponent(currentVideoId));
+      const data = await res.json();
+      if(data.error){
+        showToast(data.error, 4000);
+        openVideoPageForTranscript();
+      }else{
+        transcriptText.value = data.transcript;
+        transcriptText.dispatchEvent(new Event('input'));
+        const langLabel = data.lang === 'ja' ? '日本語' : '英語';
+        const typeLabel = data.type === 'auto' ? '自動生成' : '';
+        showToast('字幕を取得しました（' + langLabel + (typeLabel ? '・' + typeLabel : '') + '）', 3000);
+      }
+    }catch(e){
+      showToast('字幕の取得に失敗しました。動画ページを開きます', 4000);
+      openVideoPageForTranscript();
+    }finally{
+      transcribeBtn.disabled = false;
+      transcribeBtn.textContent = '文字起こし';
+    }
   });
 
   // ---------------- channel register offer (oEmbed, APIキー不要) ----------------
