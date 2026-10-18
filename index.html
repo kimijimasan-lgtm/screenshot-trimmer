@@ -633,7 +633,7 @@
 
   <div class="fab-area" id="fabArea">
     <div class="fab-group fab-group-transcript">
-      <button id="transcribeBtn" class="btn-transcribe" title="現在の再生位置からYouTubeを新しいタブで開く（文字起こしパネルは手動で開いてください）">文字起こし</button>
+      <button id="transcribeBtn" class="btn-transcribe" title="動画ページを新しいタブで開きます。説明欄の「文字起こしを表示」からコピーして「字幕を貼り付け」に貼ってください">文字起こし</button>
       <div class="transcript-section" id="transcriptSection">
         <button class="transcript-toggle" id="transcriptToggle">📝 字幕を貼り付け</button>
       </div>
@@ -1446,12 +1446,25 @@
     maybeOfferChannel(id);
   }
 
-  // 現在の再生位置つきURLでYouTubeを新しいタブで開く（文字起こしパネルはユーザーが手動で開く）
+  // 動画ページを新しいタブで開き、説明欄の「文字起こしを表示」からのコピーを案内する
   document.getElementById('transcribeBtn').addEventListener('click', ()=>{
-    if(currentMode !== 'youtube') return;
-    if(!currentVideoId){ setStatus('動画が読み込まれていません。', true); return; }
-    const t = Math.floor(getActivePlayer().currentTime());
-    window.open('https://www.youtube.com/watch?v=' + currentVideoId + '&t=' + t + 's', '_blank');
+    if(currentMode === 'local'){
+      showToast('ローカル動画モードでは使えません。YouTubeモードに切り替えて動画を読み込んでください');
+      return;
+    }
+    if(!currentVideoId){
+      showToast('先にYouTube動画を読み込んでください');
+      return;
+    }
+    const checkedTimes = bmChecks
+      .map((c,i)=> c.checked ? bmTimes[i] : null)
+      .filter(t=> t !== null && t !== undefined);
+    let url = 'https://www.youtube.com/watch?v=' + currentVideoId;
+    if(checkedTimes.length === 2){
+      url += '&t=' + Math.floor(Math.min(...checkedTimes));
+    }
+    window.open(url, '_blank');
+    showToast('動画の説明欄の「文字起こしを表示」から全文をコピーして、戻って「字幕を貼り付け」に貼ってください', 5000);
   });
 
   // ---------------- channel register offer (oEmbed, APIキー不要) ----------------
