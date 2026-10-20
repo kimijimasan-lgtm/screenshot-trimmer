@@ -250,6 +250,10 @@ claude --model claude-opus-4-6 --dangerously-skip-permissions
 - yt-dlp がインストールされている必要がある
 - YouTube側の仕様変更で一時的に動かなくなる可能性がある（yt-dlpの更新で対応）
 
+### 設定画面の「困ったとき」
+- 設定(⚙)の最下部に折りたたみ式の「困ったとき」がある。項目を増やすときは `details.trouble-item` を並べる
+- 現在の項目：動画再生時に字幕の枠が出る(Chromeの「自動字幕起こし」)。`chrome://settings/accessibility` のコピーボタン付きで、オフにする手順を案内
+
 ---
 
 ## 11. 未決定事項・TODO

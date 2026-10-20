@@ -230,6 +230,27 @@
   .test-key{background:#eef3ff;color:#2c5cc5;border:1px solid #c5d4f5 !important;}
   .test-key:disabled{opacity:.5;cursor:default;}
   .settings-sep{border:none;border-top:1px solid #e0e2e8;margin:16px 0;}
+  /* 困ったとき（折りたたみ項目。項目を増やすときは details.trouble-item を並べる） */
+  .trouble-item{background:#fff;border:1px solid #e0e2e8;border-radius:10px;margin-bottom:8px;}
+  .trouble-item > summary{
+    cursor:pointer;padding:11px 14px;font-size:13px;font-weight:700;color:#1f2430;line-height:1.5;
+    line-break:strict;text-wrap:balance;
+  }
+  .trouble-item > summary:hover{color:#2c5cc5;}
+  .trouble-body{padding:0 14px 12px;}
+  .trouble-body .settings-desc{margin-bottom:10px;}
+  .copy-addr-row{display:flex;align-items:center;gap:8px;margin:2px 0 8px 26px;flex-wrap:wrap;}
+  .copy-addr{
+    font-family:Consolas,Menlo,monospace;font-size:13px;color:#1f2430;background:#eef0f4;
+    border:1px solid #d0d3da;border-radius:6px;padding:5px 10px;user-select:all;word-break:break-all;
+  }
+  .copy-addr-btn{
+    padding:6px 12px;border-radius:8px;border:1px solid #c5d4f5;background:#eef3ff;color:#2c5cc5;
+    font-weight:700;font-size:13px;cursor:pointer;white-space:nowrap;
+  }
+  .copy-addr-btn.copied{background:#e3f4e8;border-color:#a8d8b4;color:#2e7d32;}
+  .copy-addr-msg{font-size:12px;color:#d32f2f;margin:0 0 6px 26px;display:none;}
+  .copy-addr-msg.show{display:block;}
   .chan-icon{overflow:hidden;}
   .chan-icon img{width:100%;height:100%;border-radius:50%;object-fit:cover;display:block;}
 
@@ -894,6 +915,27 @@
         <button class="clear-key" id="clearApiKey">クリア</button>
       </div>
     </div>
+
+    <hr class="settings-sep">
+
+    <div class="settings-section">
+      <div class="settings-section-head"><h3>困ったとき</h3></div>
+
+      <details class="trouble-item">
+        <summary>動画を再生すると、字幕の枠が出てじゃまなとき</summary>
+        <div class="trouble-body">
+          <div class="settings-desc">これは、このアプリではなく、Chromeの「自動字幕起こし」という機能です。次の手順で、オフにできます。</div>
+          <div class="settings-step"><span class="settings-step-num">1.</span><span>Chromeのアドレスバーに、下のアドレスを入力して、Enterを押します（下の「コピー」を押して、貼り付けてもかまいません）</span></div>
+          <div class="copy-addr-row">
+            <span class="copy-addr">chrome://settings/accessibility</span>
+            <button type="button" class="copy-addr-btn" data-copy="chrome://settings/accessibility">コピー</button>
+          </div>
+          <div class="copy-addr-msg">コピーできませんでした。文字を選んで、Ctrl+C でコピーしてください</div>
+          <div class="settings-step"><span class="settings-step-num">2.</span><span>「自動字幕起こし」のスイッチを、オフにします</span></div>
+          <div class="settings-desc" style="color:#8b8f9c;font-size:12px;margin:6px 0 0;">Edgeなど、ほかのブラウザでは、設定の場所が違うことがあります。</div>
+        </div>
+      </details>
+    </div>
   </div>
 </div>
 
@@ -1091,6 +1133,24 @@
     settingsOverlay.classList.remove('show');
     if(typeof updateApiKeyStatus === 'function') updateApiKeyStatus();
   }
+
+  // 「困ったとき」のアドレスコピー（data-copy を持つボタン共通）
+  document.querySelectorAll('.copy-addr-btn').forEach(btn=>{
+    const msg = btn.parentElement.nextElementSibling;
+    let t = null;
+    btn.addEventListener('click', async ()=>{
+      if(t){ clearTimeout(t); t = null; }
+      try{
+        await navigator.clipboard.writeText(btn.dataset.copy);
+        if(msg) msg.classList.remove('show');
+        btn.textContent = '✓ コピーしました';
+        btn.classList.add('copied');
+        t = setTimeout(()=>{ btn.textContent = 'コピー'; btn.classList.remove('copied'); t = null; }, 2000);
+      }catch(e){
+        if(msg) msg.classList.add('show');
+      }
+    });
+  });
 
   settingsBtn.addEventListener('click', openSettings);
   document.getElementById('settingsClose').addEventListener('click', closeSettings);
