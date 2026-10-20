@@ -341,22 +341,28 @@
     position:absolute;inset:0;display:flex;align-items:center;justify-content:center;
     color:var(--text-lo);font-size:13px;text-align:center;padding:20px;line-height:1.8;
   }
-  /* 字幕の枠の案内バー（動画エリア上端に重ねる。レイアウトは動かさない） */
+  /* 字幕の枠の案内バー：動画エリアの真上の細い1行（動画には重ねない。表示/非表示は高さのなめらかな変化で、ガタつかせない） */
+  .video-col{flex:1;min-width:200px;min-height:0;display:flex;flex-direction:column;}
+  .video-col .video-pane{flex:1;min-height:0;min-width:0;}
   .caption-hint{
-    position:absolute;top:8px;left:50%;transform:translateX(-50%) translateY(-6px);
-    z-index:20;max-width:calc(100% - 16px);
-    display:flex;align-items:center;gap:8px;
-    background:rgba(28,30,40,.92);border:1px solid var(--hairline);border-radius:999px;
-    padding:5px 6px 5px 14px;font-size:12px;color:var(--text-hi);white-space:nowrap;
-    opacity:0;pointer-events:none;transition:opacity .25s ease, transform .25s ease;
+    flex:0 0 auto;height:0;overflow:hidden;transition:height .25s ease;
+    background:#fff6db;border-left:5px solid #e8a317;color:#1f2430;
   }
-  .caption-hint.show{opacity:1;pointer-events:auto;transform:translateX(-50%) translateY(0);}
+  .caption-hint.reserve{height:36px;}
+  .caption-hint-inner{
+    height:36px;display:flex;align-items:center;gap:8px;padding:0 8px 0 10px;
+    font-size:12.5px;font-weight:700;white-space:nowrap;
+    opacity:0;pointer-events:none;transition:opacity .2s ease;
+  }
+  .caption-hint.show .caption-hint-inner{opacity:1;pointer-events:auto;}
+  .caption-hint-inner > span{flex:1 1 auto;min-width:0;overflow:hidden;text-overflow:ellipsis;}
   .caption-hint button{
-    border:none;border-radius:999px;font-weight:700;font-size:12px;cursor:pointer;padding:4px 10px;
+    flex:0 0 auto;border-radius:6px;font-weight:700;font-size:12px;cursor:pointer;padding:5px 10px;
   }
-  .caption-hint .ch-go{background:var(--accent-2);color:#04211e;}
-  .caption-hint .ch-x{background:transparent;color:var(--text-lo);padding:4px 8px;}
-  .caption-hint .ch-x:hover{color:var(--text-hi);}
+  .caption-hint .ch-go{background:#2c5cc5;color:#fff;border:none;}
+  .caption-hint .ch-go:hover{background:#244ea8;}
+  .caption-hint .ch-done{background:#fff;color:#1f2430;border:1px solid #c9b46a;}
+  .caption-hint .ch-done:hover{background:#fff0c4;}
   .flash{position:fixed;inset:0;background:#fff;opacity:0;pointer-events:none;z-index:60;}
   .flash.on{opacity:.85;transition:none;}
 
@@ -684,12 +690,15 @@
 </div>
 
 <main id="view-watch">
-  <div class="video-pane" id="videoPane">
-    <div class="caption-hint" id="captionHint" role="note">
+  <div class="video-col">
+  <div class="caption-hint" id="captionHint" role="note">
+    <div class="caption-hint-inner">
       <span>動画に字幕の枠が出てじゃまなときは、こちら</span>
       <button type="button" class="ch-go" id="captionHintGo">手順を見る</button>
-      <button type="button" class="ch-x" id="captionHintX" aria-label="閉じる（二度と出さない）">×</button>
+      <button type="button" class="ch-done" id="captionHintDone">✓ 設定した（もう表示しない）</button>
     </div>
+  </div>
+  <div class="video-pane" id="videoPane">
     <div class="player-frame">
       <div id="player"></div>
       <video id="localVideo" playsinline controls></video>
@@ -705,6 +714,7 @@
         <span class="seek-time mono" id="seekTimeDur">0:00</span>
       </div>
     </div>
+  </div>
   </div>
 
   <div class="fab-area" id="fabArea">
@@ -1044,9 +1054,8 @@
 <script src="https://www.youtube.com/iframe_api"></script>
 <script>
 (function(){
-  // 字幕の枠の案内バー：自動で消えるまでの時間（ミリ秒）と、「二度と出さない」の記憶キー
-  const CAPTION_HINT_AUTOHIDE_MS = 20000;
-  const CAPTION_HINT_KEY = 'stCaptionHintDismissed';
+  // 字幕の枠の案内バー：「設定した」を押したことの記憶キー（旧 stCaptionHintDismissed は使わない）
+  const CAPTION_HINT_KEY = 'stCaptionHintDone';
   // 「✨ 区間内の要約」ボタンの結果表示（成功・失敗）を出しておく時間（ミリ秒）
   const SUMMARIZE_FLASH_MS = 3000;
   // 要約方式ごとの設定。「項目別（解説）」は出力が長いので max_tokens と字幕の上限を別に持つ
@@ -1467,7 +1476,7 @@
 
   function switchMode(mode){
     currentMode = mode;
-    if(mode === 'local' && typeof hideCaptionHint === 'function') hideCaptionHint();
+    if(typeof updateCaptionHint === 'function') updateCaptionHint();
     modeTabYoutube.classList.toggle('active', mode === 'youtube');
     modeTabLocal.classList.toggle('active', mode === 'local');
     youtubeOnlyEls.forEach(el=>{ if(el) el.classList.toggle('mode-hide', mode !== 'youtube'); });
@@ -1602,7 +1611,7 @@
     resetBookmarks();  // ブックマークは動画単位（切り替えたらリセット）
     maybeOfferChannel(id);
     if(typeof prefetchChapters === 'function') prefetchChapters(id);
-    if(typeof showCaptionHint === 'function') showCaptionHint();
+    if(typeof updateCaptionHint === 'function') updateCaptionHint();
   }
 
   // 字幕取得サーバーの有無を判定（localhost のみ）
@@ -1812,32 +1821,22 @@
 
   // ---------------- 字幕の枠の案内バー（Chromeの「自動字幕起こし」。手順は設定の「困ったとき」） ----------------
   const captionHint = document.getElementById('captionHint');
-  let captionHintTimer = null;
-  function captionHintDismissed(){
+  function captionHintDone(){
     try{ return !!localStorage.getItem(CAPTION_HINT_KEY); }catch(e){ return false; }
   }
-  function rememberCaptionHintDismissed(){
+  // 帯の場所は「YouTubeモードで未設定」の間ずっと確保し（動画の読み込み前後で動画エリアが動かない）、
+  // 中身は動画が読み込まれてから見せる。ローカル動画モードと「設定した」後は、高さごとなめらかに畳む
+  function updateCaptionHint(){
+    const reserve = currentMode === 'youtube' && !captionHintDone();
+    captionHint.classList.toggle('reserve', reserve);
+    captionHint.classList.toggle('show', reserve && !!currentVideoId);
+  }
+  document.getElementById('captionHintDone').addEventListener('click', ()=>{
     try{ localStorage.setItem(CAPTION_HINT_KEY, '1'); }catch(e){}
-  }
-  function hideCaptionHint(){
-    if(captionHintTimer){ clearTimeout(captionHintTimer); captionHintTimer = null; }
-    captionHint.classList.remove('show');
-  }
-  function showCaptionHint(){
-    if(currentMode === 'local' || captionHintDismissed()) return;
-    if(captionHintTimer) clearTimeout(captionHintTimer);  // 表示中に別の動画を読み込んでも、1つのバーでタイマーだけ測り直す
-    captionHint.classList.add('show');
-    captionHintTimer = setTimeout(hideCaptionHint, CAPTION_HINT_AUTOHIDE_MS);  // 放置で消える（記憶はしない）
-  }
-  document.getElementById('captionHintX').addEventListener('click', ()=>{
-    rememberCaptionHintDismissed();
-    hideCaptionHint();
+    updateCaptionHint();
   });
-  document.getElementById('captionHintGo').addEventListener('click', ()=>{
-    rememberCaptionHintDismissed();
-    hideCaptionHint();
-    openCaptionHelp();
-  });
+  document.getElementById('captionHintGo').addEventListener('click', openCaptionHelp);  // 帯は消さない
+  updateCaptionHint();
 
   // ---------------- チャプター（server.py の /api/chapters 経由。start.bat から開いた画面のみ） ----------------
   const chapterPop = document.getElementById('chapterPop');
