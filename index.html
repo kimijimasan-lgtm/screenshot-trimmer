@@ -264,26 +264,47 @@
   .test-key:disabled{opacity:.5;cursor:default;}
   .settings-sep{border:none;border-top:1px solid #e0e2e8;margin:16px 0;}
   /* 困ったとき（折りたたみ項目。項目を増やすときは details.trouble-item を並べる） */
-  .trouble-item{background:#fff;border:1px solid #e0e2e8;border-radius:10px;margin-bottom:8px;}
+  .trouble-item{background:#fff;border:1px solid #d0d3da;border-radius:10px;margin-bottom:8px;}
   .trouble-item > summary{
-    cursor:pointer;padding:11px 14px;font-size:13px;font-weight:700;color:#1f2430;line-height:1.5;
+    cursor:pointer;padding:12px 14px;font-size:14.5px;font-weight:800;color:#1f2430;line-height:1.5;
     line-break:strict;text-wrap:balance;
   }
   .trouble-item > summary:hover{color:#2c5cc5;}
-  .trouble-body{padding:0 14px 12px;}
-  .trouble-body .settings-desc{margin-bottom:10px;}
-  .copy-addr-row{display:flex;align-items:center;gap:8px;margin:2px 0 8px 26px;flex-wrap:wrap;}
+  .trouble-body{padding:0 12px 12px;}
+  /* 案内カード（設定の「困ったとき」と専用モーダルで共通。中身は <template id="helpCaptionTpl"> から複製） */
+  .help-card{
+    background:#fff6db;border:1px solid #f0c75e;border-left:5px solid #e8a317;border-radius:10px;
+    padding:14px 16px;color:#1f2430;
+  }
+  .help-title{font-size:17px;font-weight:800;color:#1f2430;margin:0 0 8px;line-height:1.45;}
+  .trouble-item .help-title{display:none;}  /* 折りたたみ側は summary が見出し */
+  .help-desc{font-size:13.5px;line-height:1.75;color:#1f2430;margin:0 0 10px;line-break:strict;text-wrap:pretty;}
+  .help-step{display:flex;gap:8px;align-items:flex-start;font-size:13.5px;line-height:1.7;color:#1f2430;margin-bottom:6px;}
+  .help-step-num{
+    flex:0 0 auto;width:22px;height:22px;margin-top:2px;border-radius:50%;
+    background:#2c5cc5;color:#fff;font-weight:700;font-size:12.5px;
+    display:flex;align-items:center;justify-content:center;
+  }
+  .copy-addr-row{display:flex;align-items:center;gap:8px;margin:2px 0 8px 30px;flex-wrap:wrap;}
   .copy-addr{
-    font-family:Consolas,Menlo,monospace;font-size:13px;color:#1f2430;background:#eef0f4;
-    border:1px solid #d0d3da;border-radius:6px;padding:5px 10px;user-select:all;word-break:break-all;
+    font-family:Consolas,Menlo,monospace;font-size:15px;font-weight:700;color:#fff;background:#1f2430;
+    border-radius:8px;padding:8px 12px;user-select:all;word-break:break-all;
   }
   .copy-addr-btn{
-    padding:6px 12px;border-radius:8px;border:1px solid #c5d4f5;background:#eef3ff;color:#2c5cc5;
-    font-weight:700;font-size:13px;cursor:pointer;white-space:nowrap;
+    padding:8px 14px;border-radius:8px;border:none;background:#2c5cc5;color:#fff;
+    font-weight:700;font-size:13.5px;cursor:pointer;white-space:nowrap;
   }
-  .copy-addr-btn.copied{background:#e3f4e8;border-color:#a8d8b4;color:#2e7d32;}
-  .copy-addr-msg{font-size:12px;color:#d32f2f;margin:0 0 6px 26px;display:none;}
+  .copy-addr-btn:hover{background:#244ea8;}
+  .copy-addr-btn.copied{background:#1b6e34;}
+  .copy-addr-msg{font-size:12.5px;font-weight:700;color:#b3261e;margin:0 0 6px 30px;display:none;}
   .copy-addr-msg.show{display:block;}
+  .help-note{font-size:12.5px;line-height:1.6;color:#4a5060;margin:8px 0 0;}
+  .help-modal-actions{display:flex;justify-content:flex-end;margin-top:14px;}
+  .help-modal-actions button{
+    padding:9px 22px;border-radius:8px;border:1px solid #c5cad6;background:#fff;color:#1f2430;
+    font-weight:700;font-size:13.5px;cursor:pointer;
+  }
+  .help-modal-actions button:hover{background:#eef0f4;}
   .chan-icon{overflow:hidden;}
   .chan-icon img{width:100%;height:100%;border-radius:50%;object-fit:cover;display:block;}
 
@@ -981,19 +1002,35 @@
 
       <details class="trouble-item">
         <summary>動画を再生すると、字幕の枠が出てじゃまなとき</summary>
-        <div class="trouble-body">
-          <div class="settings-desc">これは、このアプリではなく、Chromeの「自動字幕起こし」という機能です。次の手順で、オフにできます。</div>
-          <div class="settings-step"><span class="settings-step-num">1.</span><span>Chromeのアドレスバーに、下のアドレスを入力して、Enterを押します（下の「コピー」を押して、貼り付けてもかまいません）</span></div>
-          <div class="copy-addr-row">
-            <span class="copy-addr">chrome://settings/accessibility</span>
-            <button type="button" class="copy-addr-btn" data-copy="chrome://settings/accessibility">コピー</button>
-          </div>
-          <div class="copy-addr-msg">コピーできませんでした。文字を選んで、Ctrl+C でコピーしてください</div>
-          <div class="settings-step"><span class="settings-step-num">2.</span><span>「自動字幕起こし」のスイッチを、オフにします</span></div>
-          <div class="settings-desc" style="color:#8b8f9c;font-size:12px;margin:6px 0 0;">Edgeなど、ほかのブラウザでは、設定の場所が違うことがあります。</div>
-        </div>
+        <div class="trouble-body"><div data-help-card="caption"></div></div>
       </details>
     </div>
+  </div>
+</div>
+
+<template id="helpCaptionTpl">
+  <div class="help-card">
+    <h4 class="help-title">字幕の枠が出てじゃまなとき</h4>
+    <div class="help-desc">これは、このアプリではなく、Chromeの「自動字幕起こし」という機能です。次の手順で、オフにできます。</div>
+    <div class="help-step"><span class="help-step-num">1</span><span>Chromeのアドレスバーに、下のアドレスを入力して、Enterを押します（下の「コピー」を押して、貼り付けてもかまいません）</span></div>
+    <div class="copy-addr-row">
+      <span class="copy-addr">chrome://settings/accessibility</span>
+      <button type="button" class="copy-addr-btn" data-copy="chrome://settings/accessibility">コピー</button>
+    </div>
+    <div class="copy-addr-msg">コピーできませんでした。文字を選んで、Ctrl+C でコピーしてください</div>
+    <div class="help-step"><span class="help-step-num">2</span><span>「自動字幕起こし」のスイッチを、オフにします</span></div>
+    <div class="help-note">Edgeなど、ほかのブラウザでは、設定の場所が違うことがあります。</div>
+  </div>
+</template>
+
+<div class="settings-overlay" id="captionHelpOverlay">
+  <div class="settings-modal" role="dialog" aria-label="字幕の枠が出てじゃまなとき">
+    <div class="settings-modal-header">
+      <h2>困ったとき</h2>
+      <button class="settings-modal-close" id="captionHelpX" title="閉じる">&times;</button>
+    </div>
+    <div data-help-card="caption"></div>
+    <div class="help-modal-actions"><button type="button" id="captionHelpClose">閉じる</button></div>
   </div>
 </div>
 
@@ -1200,22 +1237,40 @@
     if(typeof updateApiKeyStatus === 'function') updateApiKeyStatus();
   }
 
-  // 「困ったとき」のアドレスコピー（data-copy を持つボタン共通）
-  document.querySelectorAll('.copy-addr-btn').forEach(btn=>{
-    const msg = btn.parentElement.nextElementSibling;
-    let t = null;
-    btn.addEventListener('click', async ()=>{
-      if(t){ clearTimeout(t); t = null; }
-      try{
-        await navigator.clipboard.writeText(btn.dataset.copy);
-        if(msg) msg.classList.remove('show');
-        btn.textContent = '✓ コピーしました';
-        btn.classList.add('copied');
-        t = setTimeout(()=>{ btn.textContent = 'コピー'; btn.classList.remove('copied'); t = null; }, 2000);
-      }catch(e){
-        if(msg) msg.classList.add('show');
-      }
+  // 「困ったとき」の案内カード：1つのテンプレートから、設定の折りたたみと専用モーダルの両方に複製する
+  function bindCopyButtons(root){
+    root.querySelectorAll('.copy-addr-btn').forEach(btn=>{
+      const msg = btn.parentElement.nextElementSibling;
+      let t = null;
+      btn.addEventListener('click', async ()=>{
+        if(t){ clearTimeout(t); t = null; }
+        try{
+          await navigator.clipboard.writeText(btn.dataset.copy);
+          if(msg) msg.classList.remove('show');
+          btn.textContent = '✓ コピーしました';
+          btn.classList.add('copied');
+          t = setTimeout(()=>{ btn.textContent = 'コピー'; btn.classList.remove('copied'); t = null; }, 2000);
+        }catch(e){
+          if(msg) msg.classList.add('show');
+        }
+      });
     });
+  }
+  document.querySelectorAll('[data-help-card]').forEach(slot=>{
+    const tpl = document.getElementById('helpCaptionTpl');  // 今は字幕の枠の案内のみ。増やすときは data-help-card の値で選ぶ
+    slot.appendChild(tpl.content.cloneNode(true));
+    bindCopyButtons(slot);
+  });
+
+  // 専用モーダル（案内バーの「手順を見る」から開く。設定のほかの部品は出さない）
+  const captionHelpOverlay = document.getElementById('captionHelpOverlay');
+  function openCaptionHelp(){ captionHelpOverlay.classList.add('show'); }
+  function closeCaptionHelp(){ captionHelpOverlay.classList.remove('show'); }
+  document.getElementById('captionHelpX').addEventListener('click', closeCaptionHelp);
+  document.getElementById('captionHelpClose').addEventListener('click', closeCaptionHelp);
+  captionHelpOverlay.addEventListener('click', (e)=>{ if(e.target === captionHelpOverlay) closeCaptionHelp(); });
+  document.addEventListener('keydown', (e)=>{
+    if(e.key === 'Escape' && captionHelpOverlay.classList.contains('show')) closeCaptionHelp();
   });
 
   settingsBtn.addEventListener('click', openSettings);
@@ -1781,12 +1836,7 @@
   document.getElementById('captionHintGo').addEventListener('click', ()=>{
     rememberCaptionHintDismissed();
     hideCaptionHint();
-    openSettings();
-    const item = document.querySelector('.trouble-item');
-    if(item){
-      item.open = true;
-      item.scrollIntoView({ block: 'center' });
-    }
+    openCaptionHelp();
   });
 
   // ---------------- チャプター（server.py の /api/chapters 経由。start.bat から開いた画面のみ） ----------------
