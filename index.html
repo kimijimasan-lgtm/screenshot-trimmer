@@ -320,6 +320,22 @@
     position:absolute;inset:0;display:flex;align-items:center;justify-content:center;
     color:var(--text-lo);font-size:13px;text-align:center;padding:20px;line-height:1.8;
   }
+  /* 字幕の枠の案内バー（動画エリア上端に重ねる。レイアウトは動かさない） */
+  .caption-hint{
+    position:absolute;top:8px;left:50%;transform:translateX(-50%) translateY(-6px);
+    z-index:20;max-width:calc(100% - 16px);
+    display:flex;align-items:center;gap:8px;
+    background:rgba(28,30,40,.92);border:1px solid var(--hairline);border-radius:999px;
+    padding:5px 6px 5px 14px;font-size:12px;color:var(--text-hi);white-space:nowrap;
+    opacity:0;pointer-events:none;transition:opacity .25s ease, transform .25s ease;
+  }
+  .caption-hint.show{opacity:1;pointer-events:auto;transform:translateX(-50%) translateY(0);}
+  .caption-hint button{
+    border:none;border-radius:999px;font-weight:700;font-size:12px;cursor:pointer;padding:4px 10px;
+  }
+  .caption-hint .ch-go{background:var(--accent-2);color:#04211e;}
+  .caption-hint .ch-x{background:transparent;color:var(--text-lo);padding:4px 8px;}
+  .caption-hint .ch-x:hover{color:var(--text-hi);}
   .flash{position:fixed;inset:0;background:#fff;opacity:0;pointer-events:none;z-index:60;}
   .flash.on{opacity:.85;transition:none;}
 
@@ -648,6 +664,11 @@
 
 <main id="view-watch">
   <div class="video-pane" id="videoPane">
+    <div class="caption-hint" id="captionHint" role="note">
+      <span>動画に字幕の枠が出てじゃまなときは、こちら</span>
+      <button type="button" class="ch-go" id="captionHintGo">手順を見る</button>
+      <button type="button" class="ch-x" id="captionHintX" aria-label="閉じる（二度と出さない）">×</button>
+    </div>
     <div class="player-frame">
       <div id="player"></div>
       <video id="localVideo" playsinline controls></video>
@@ -986,6 +1007,9 @@
 <script src="https://www.youtube.com/iframe_api"></script>
 <script>
 (function(){
+  // 字幕の枠の案内バー：自動で消えるまでの時間（ミリ秒）と、「二度と出さない」の記憶キー
+  const CAPTION_HINT_AUTOHIDE_MS = 20000;
+  const CAPTION_HINT_KEY = 'stCaptionHintDismissed';
   // 「✨ 区間内の要約」ボタンの結果表示（成功・失敗）を出しておく時間（ミリ秒）
   const SUMMARIZE_FLASH_MS = 3000;
   // 要約方式ごとの設定。「項目別（解説）」は出力が長いので max_tokens と字幕の上限を別に持つ
@@ -1388,6 +1412,7 @@
 
   function switchMode(mode){
     currentMode = mode;
+    if(mode === 'local' && typeof hideCaptionHint === 'function') hideCaptionHint();
     modeTabYoutube.classList.toggle('active', mode === 'youtube');
     modeTabLocal.classList.toggle('active', mode === 'local');
     youtubeOnlyEls.forEach(el=>{ if(el) el.classList.toggle('mode-hide', mode !== 'youtube'); });
@@ -1522,6 +1547,7 @@
     resetBookmarks();  // ブックマークは動画単位（切り替えたらリセット）
     maybeOfferChannel(id);
     if(typeof prefetchChapters === 'function') prefetchChapters(id);
+    if(typeof showCaptionHint === 'function') showCaptionHint();
   }
 
   // 字幕取得サーバーの有無を判定（localhost のみ）
@@ -1727,6 +1753,40 @@
     const ap = getActivePlayer();
     ap.seekTo(target);
     ap.play();
+  });
+
+  // ---------------- 字幕の枠の案内バー（Chromeの「自動字幕起こし」。手順は設定の「困ったとき」） ----------------
+  const captionHint = document.getElementById('captionHint');
+  let captionHintTimer = null;
+  function captionHintDismissed(){
+    try{ return !!localStorage.getItem(CAPTION_HINT_KEY); }catch(e){ return false; }
+  }
+  function rememberCaptionHintDismissed(){
+    try{ localStorage.setItem(CAPTION_HINT_KEY, '1'); }catch(e){}
+  }
+  function hideCaptionHint(){
+    if(captionHintTimer){ clearTimeout(captionHintTimer); captionHintTimer = null; }
+    captionHint.classList.remove('show');
+  }
+  function showCaptionHint(){
+    if(currentMode === 'local' || captionHintDismissed()) return;
+    if(captionHintTimer) clearTimeout(captionHintTimer);  // 表示中に別の動画を読み込んでも、1つのバーでタイマーだけ測り直す
+    captionHint.classList.add('show');
+    captionHintTimer = setTimeout(hideCaptionHint, CAPTION_HINT_AUTOHIDE_MS);  // 放置で消える（記憶はしない）
+  }
+  document.getElementById('captionHintX').addEventListener('click', ()=>{
+    rememberCaptionHintDismissed();
+    hideCaptionHint();
+  });
+  document.getElementById('captionHintGo').addEventListener('click', ()=>{
+    rememberCaptionHintDismissed();
+    hideCaptionHint();
+    openSettings();
+    const item = document.querySelector('.trouble-item');
+    if(item){
+      item.open = true;
+      item.scrollIntoView({ block: 'center' });
+    }
   });
 
   // ---------------- チャプター（server.py の /api/chapters 経由。start.bat から開いた画面のみ） ----------------
