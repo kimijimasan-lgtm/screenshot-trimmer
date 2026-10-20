@@ -99,6 +99,39 @@
     background:var(--ink);border:1px solid var(--hairline);border-radius:8px;
     padding:6px 18px;line-height:1.2;white-space:nowrap;
   }
+  .now-chapter{
+    font-size:11.5px;color:var(--text-lo);max-width:170px;min-width:0;
+    overflow:hidden;text-overflow:ellipsis;white-space:nowrap;display:none;
+  }
+  .now-chapter.show{display:block;}
+  /* チャプター一覧（fab-areaがoverflow:hiddenなので position:fixed で重ねて出す） */
+  .chapter-pop{
+    position:fixed;z-index:75;width:330px;max-width:calc(100vw - 16px);
+    background:var(--panel-2);border:1px solid var(--hairline);border-radius:12px;
+    box-shadow:0 10px 30px rgba(0,0,0,.5);
+    display:none;flex-direction:column;overflow:hidden;
+  }
+  .chapter-pop.show{display:flex;}
+  .chapter-pop-head{
+    padding:8px 12px;font-size:12px;font-weight:700;color:var(--text-hi);
+    border-bottom:1px solid var(--hairline);
+  }
+  .chapter-list{overflow-y:auto;flex:1;min-height:0;}
+  .chapter-msg{padding:16px 12px;font-size:12.5px;color:var(--text-lo);text-align:center;}
+  .chapter-row{
+    display:flex;align-items:center;gap:6px;padding:6px 8px 6px 10px;
+    border-left:3px solid transparent;border-bottom:1px solid var(--hairline);
+  }
+  .chapter-row:last-child{border-bottom:none;}
+  .chapter-row.current{background:rgba(124,92,252,.18);border-left-color:var(--accent);}
+  .chapter-time{font-size:12px;font-weight:700;color:var(--accent);flex:0 0 auto;min-width:46px;}
+  .chapter-title{flex:1;min-width:0;font-size:12.5px;line-height:1.35;color:var(--text-hi);word-break:break-word;}
+  .chapter-row button{
+    flex:0 0 auto;padding:5px 8px;border-radius:6px;border:none;font-weight:700;font-size:12px;cursor:pointer;
+  }
+  .chapter-play{background:var(--panel);color:var(--text-hi);border:1px solid var(--hairline) !important;}
+  .chapter-get{background:#e8a030;color:#1c0a05;}
+  .chapter-row button:hover{filter:brightness(1.1);}
   .bm-list{display:flex;gap:22px;align-items:center;}
   .bm-row{display:flex;align-items:center;gap:8px;cursor:pointer;}
   .bm-row input{width:22px;height:22px;flex:0 0 auto;accent-color:var(--accent-2);cursor:pointer;margin:0;}
@@ -603,6 +636,7 @@
 </header>
 <div class="toolbar-row" id="toolbarRow">
   <div class="now-time mono" id="nowTime">0:00</div>
+  <div class="now-chapter" id="nowChapter"></div>
   <div class="bm-list" id="bmList">
     <label class="bm-row"><input type="checkbox" class="bm-check"><span class="bm-time mono empty">--:--</span></label>
     <label class="bm-row"><input type="checkbox" class="bm-check"><span class="bm-time mono empty">--:--</span></label>
@@ -650,6 +684,9 @@
       </div>
       <div class="bm-actions">
         <button id="bmLinkBtn" title="チェックした2つのタイムスタンプから、区間つきの再生リンクを作ってコピーします">🔗 区間リンクをコピー</button>
+      </div>
+      <div class="bm-actions">
+        <button id="bmChapterBtn" title="動画のチャプター一覧を開きます（start.bat から開いた画面で使えます）">📑 チャプター</button>
       </div>
     </div>
 
@@ -937,6 +974,11 @@
       </details>
     </div>
   </div>
+</div>
+
+<div class="chapter-pop" id="chapterPop" role="dialog" aria-label="チャプター一覧">
+  <div class="chapter-pop-head">📑 チャプター</div>
+  <div class="chapter-list" id="chapterList"></div>
 </div>
 
 <div class="toast" id="toast"></div>
@@ -1479,6 +1521,7 @@
     if(player && player.loadVideoById){ player.loadVideoById(id); }
     resetBookmarks();  // ブックマークは動画単位（切り替えたらリセット）
     maybeOfferChannel(id);
+    if(typeof prefetchChapters === 'function') prefetchChapters(id);
   }
 
   // 字幕取得サーバーの有無を判定（localhost のみ）
@@ -1566,6 +1609,7 @@
     const ap = getActivePlayer();
     if(!ap.ready()) return;  // 動画未読み込み時は 0:00 のまま
     nowTimeEl.textContent = fmtTime(ap.currentTime());
+    if(typeof updateNowChapter === 'function') updateNowChapter();
     refreshPlayPauseIcon();
   }, 500);
 
@@ -1684,6 +1728,170 @@
     ap.seekTo(target);
     ap.play();
   });
+
+  // ---------------- チャプター（server.py の /api/chapters 経由。start.bat から開いた画面のみ） ----------------
+  const chapterPop = document.getElementById('chapterPop');
+  const chapterList = document.getElementById('chapterList');
+  const chapterBtn = document.getElementById('bmChapterBtn');
+  const nowChapterEl = document.getElementById('nowChapter');
+  let chaptersState = { videoId: null, data: null, promise: null };  // 動画ごとに1つだけ覚える
+
+  function chaptersFor(videoId){
+    if(chaptersState.videoId === videoId){
+      if(chaptersState.data) return Promise.resolve(chaptersState.data);
+      if(chaptersState.promise) return chaptersState.promise;
+    }
+    const state = { videoId, data: null, promise: null };
+    chaptersState = state;
+    state.promise = (async ()=>{
+      let res, body;
+      try{
+        res = await fetch('/api/chapters?v=' + encodeURIComponent(videoId));
+        body = await res.json();
+      }catch(e){
+        throw new Error('チャプターの取得に失敗しました。サーバーが起動しているか確認してください');
+      }
+      if(!res.ok || body.error) throw new Error(body.error || 'チャプターを取得できませんでした');
+      state.data = body;
+      return body;
+    })();
+    state.promise.catch(()=>{ if(chaptersState === state) chaptersState = { videoId: null, data: null, promise: null }; });
+    return state.promise;
+  }
+
+  // 動画を読み込んだとき、裏でチャプターを取得（失敗しても何も出さない）
+  function prefetchChapters(videoId){
+    nowChapterEl.classList.remove('show');
+    if(!transcriptServerAvailable || currentMode === 'local' || !videoId) return;
+    chaptersFor(videoId).catch(()=>{});
+  }
+
+  function currentChapterIndex(chapters, t){
+    let idx = -1;
+    chapters.forEach((c, i)=>{ if(t >= c.start) idx = i; });
+    return idx;
+  }
+
+  function updateNowChapter(){
+    const d = (currentMode !== 'local' && chaptersState.videoId === currentVideoId) ? chaptersState.data : null;
+    if(!d || !d.chapters.length){ nowChapterEl.classList.remove('show'); return; }
+    const idx = currentChapterIndex(d.chapters, getActivePlayer().currentTime());
+    if(idx < 0){ nowChapterEl.classList.remove('show'); return; }
+    const title = d.chapters[idx].title;
+    if(nowChapterEl.textContent !== title){ nowChapterEl.textContent = title; nowChapterEl.title = title; }
+    nowChapterEl.classList.add('show');
+    if(chapterPop.classList.contains('show')) markCurrentChapterRow(idx);
+  }
+
+  function markCurrentChapterRow(idx){
+    chapterList.querySelectorAll('.chapter-row').forEach((row, i)=> row.classList.toggle('current', i === idx));
+  }
+
+  function positionChapterPop(){
+    const r = chapterBtn.getBoundingClientRect();
+    chapterPop.style.maxHeight = Math.min(360, window.innerHeight - 16) + 'px';
+    const w = chapterPop.offsetWidth, h = chapterPop.offsetHeight;
+    const left = Math.max(8, r.left - w - 8);
+    const top = Math.min(Math.max(8, r.bottom - h), window.innerHeight - h - 8);
+    chapterPop.style.left = left + 'px';
+    chapterPop.style.top = Math.max(8, top) + 'px';
+  }
+
+  function closeChapterPop(){ chapterPop.classList.remove('show'); }
+
+  function showChapterMsg(text){
+    chapterList.innerHTML = '';
+    const d = document.createElement('div');
+    d.className = 'chapter-msg';
+    d.textContent = text;
+    chapterList.appendChild(d);
+  }
+
+  function renderChapterList(data){
+    chapterList.innerHTML = '';
+    data.chapters.forEach((c)=>{
+      const row = document.createElement('div');
+      row.className = 'chapter-row';
+      const time = document.createElement('span');
+      time.className = 'chapter-time mono';
+      time.textContent = fmtTime(c.start);
+      const title = document.createElement('span');
+      title.className = 'chapter-title';
+      title.textContent = c.title;
+      const play = document.createElement('button');
+      play.className = 'chapter-play';
+      play.textContent = '▶';
+      play.title = 'この場所へ移動して再生';
+      play.addEventListener('click', ()=>{
+        const ap = getActivePlayer();
+        ap.seekTo(c.start);
+        ap.play();
+      });
+      const get = document.createElement('button');
+      get.className = 'chapter-get';
+      get.textContent = '取得';
+      get.title = 'この章の開始と終了を、タイマーに入れてチェックします';
+      get.addEventListener('click', ()=> takeChapter(data, c));
+      row.append(time, title, play, get);
+      chapterList.appendChild(row);
+    });
+    markCurrentChapterRow(currentChapterIndex(data.chapters, getActivePlayer().currentTime()));
+  }
+
+  // 章の「開始」「終了」を取得枠に入れて、2つともチェック（既存の時刻・チェックはこの2つで置き換える）
+  function takeChapter(data, c){
+    const endSec = c.end > c.start ? c.end : (data.duration || c.start);
+    resetBookmarks();
+    bmTimes[0] = c.start;
+    bmTimes[1] = endSec;
+    bmNext = 2;
+    renderBookmarks();
+    checkBookmark(0);
+    checkBookmark(1);
+    closeChapterPop();
+    showToast('チャプター「' + c.title + '」を取得しました（' + fmtTime(c.start) + '〜' + fmtTime(endSec) + '）');
+  }
+
+  chapterBtn.addEventListener('click', async ()=>{
+    if(chapterPop.classList.contains('show')){ closeChapterPop(); return; }
+    if(currentMode === 'local'){ showToast('YouTubeモードで使えます'); return; }
+    if(!currentVideoId){ showToast('先にYouTube動画を読み込んでください'); return; }
+    if(!transcriptServerAvailable){
+      showToast('この機能は、スクショトリマーのフォルダにある start.bat から開いた画面で使えます', 5000);
+      return;
+    }
+    const vid = currentVideoId;
+    const cached = chaptersState.videoId === vid && chaptersState.data;
+    if(cached){
+      if(!cached.chapters.length){ showToast('この動画にはチャプターがありません'); return; }
+      renderChapterList(cached);
+      chapterPop.classList.add('show');
+      positionChapterPop();
+      return;
+    }
+    showChapterMsg('チャプターを読み込み中…');
+    chapterPop.classList.add('show');
+    positionChapterPop();
+    try{
+      const data = await chaptersFor(vid);
+      if(vid !== currentVideoId || !chapterPop.classList.contains('show')) return;  // 読み込み中に閉じた／動画が変わった
+      if(!data.chapters.length){ closeChapterPop(); showToast('この動画にはチャプターがありません'); return; }
+      renderChapterList(data);
+      positionChapterPop();
+    }catch(err){
+      closeChapterPop();
+      if(vid === currentVideoId) showToast(err.message, 4000);
+    }
+  });
+  document.addEventListener('pointerdown', (e)=>{
+    if(!chapterPop.classList.contains('show')) return;
+    if(chapterPop.contains(e.target) || chapterBtn.contains(e.target)) return;
+    closeChapterPop();
+  });
+  document.addEventListener('keydown', (e)=>{
+    if(e.key === 'Escape' && chapterPop.classList.contains('show')) closeChapterPop();
+  });
+  window.addEventListener('resize', ()=>{ if(chapterPop.classList.contains('show')) positionChapterPop(); });
 
   // 区間リンクをコピー：チェックした2点（早い方=開始・遅い方=終了）から t=&end= 付きのYouTubeリンクを作る
   document.getElementById('bmLinkBtn').addEventListener('click', async ()=>{

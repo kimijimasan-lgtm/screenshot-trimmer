@@ -1,6 +1,6 @@
 #!/usr/bin/env python3
 """スクショトリマー ローカルサーバー
-静的ファイル配信 + YouTube字幕取得API (yt-dlp)
+静的ファイル配信 + YouTube字幕取得API・チャプター取得API (yt-dlp)
 """
 
 import http.server
@@ -11,6 +11,7 @@ import shutil
 import subprocess
 import sys
 import tempfile
+import threading
 import urllib.parse
 
 
@@ -132,12 +133,59 @@ def deduplicate(entries):
     return result
 
 
+# チャプター情報のメモリ内キャッシュ（動画ID → {'chapters': [...], 'duration': 秒}）
+_chapters_cache = {}
+_chapters_lock = threading.Lock()
+
+
+def fetch_chapters(video_id):
+    """yt-dlp で動画の情報だけを取得し、チャプターと長さを返す（ダウンロードはしない）。
+    失敗時は (None, エラーメッセージ) を返す。チャプターが無い動画は chapters=[] で成功扱い。
+    """
+    url = f'https://www.youtube.com/watch?v={video_id}'
+    cmd = ['yt-dlp', '--skip-download', '--dump-single-json',
+           '--no-playlist', '--no-warnings', url]
+    try:
+        proc = subprocess.run(cmd, capture_output=True, timeout=45)
+    except subprocess.TimeoutExpired:
+        return None, 'チャプターの取得に時間がかかりすぎました。しばらくしてからやり直してください'
+    except OSError:
+        return None, 'yt-dlpを実行できませんでした'
+
+    if proc.returncode != 0:
+        return None, 'チャプターを取得できませんでした。通信状況や動画のURLを確認してください'
+
+    try:
+        info = json.loads(proc.stdout.decode('utf-8', errors='replace'))
+    except ValueError:
+        return None, 'チャプターの情報を読み取れませんでした'
+
+    duration = info.get('duration')
+    duration = int(duration) if isinstance(duration, (int, float)) else 0
+    chapters = []
+    for ch in info.get('chapters') or []:
+        start = ch.get('start_time')
+        if not isinstance(start, (int, float)):
+            continue
+        end = ch.get('end_time')
+        if not isinstance(end, (int, float)):
+            end = duration
+        chapters.append({
+            'start': int(start),
+            'end': int(end),
+            'title': str(ch.get('title') or '').strip(),
+        })
+    return {'chapters': chapters, 'duration': duration}, None
+
+
 class Handler(http.server.SimpleHTTPRequestHandler):
     def do_GET(self):
         parsed = urllib.parse.urlparse(self.path)
 
         if parsed.path == '/api/transcript':
             self.handle_transcript(parsed.query)
+        elif parsed.path == '/api/chapters':
+            self.handle_chapters(parsed.query)
         elif parsed.path == '/api/health':
             self.send_json({'status': 'ok'})
         else:
@@ -178,6 +226,40 @@ class Handler(http.server.SimpleHTTPRequestHandler):
             'type': sub_type,
         })
 
+    def handle_chapters(self, query):
+        params = urllib.parse.parse_qs(query)
+        video_id = params.get('v', [None])[0]
+
+        if not video_id:
+            self.send_json({'error': '動画IDが指定されていません'}, 400)
+            return
+
+        if not re.match(r'^[A-Za-z0-9_-]{10,12}$', video_id):
+            self.send_json({'error': '動画IDの形式が正しくありません'}, 400)
+            return
+
+        with _chapters_lock:
+            cached = _chapters_cache.get(video_id)
+        if cached is not None:
+            self.send_json(cached)
+            return
+
+        if not shutil.which('yt-dlp'):
+            self.send_json(
+                {'error': 'yt-dlpが見つかりません。インストールしてください'},
+                500,
+            )
+            return
+
+        result, error = fetch_chapters(video_id)
+        if error:
+            self.send_json({'error': error}, 502)
+            return
+
+        with _chapters_lock:
+            _chapters_cache[video_id] = result
+        self.send_json(result)
+
     def send_json(self, data, status=200):
         body = json.dumps(data, ensure_ascii=False).encode('utf-8')
         self.send_response(status)
@@ -192,7 +274,7 @@ def main():
     host = '127.0.0.1'
 
     try:
-        server = http.server.HTTPServer((host, port), Handler)
+        server = http.server.ThreadingHTTPServer((host, port), Handler)
     except OSError as e:
         err = getattr(e, 'winerror', None) or getattr(e, 'errno', None)
         if err in (10048, 98):
