@@ -484,6 +484,17 @@
   }
   .toast.show{opacity:1;transform:translateX(-50%) translateY(0);}
 
+  .summary-mode{
+    display:flex;gap:4px;width:100%;
+  }
+  .summary-mode label{
+    flex:1;text-align:center;font-size:10.5px;line-height:1.2;padding:3px 2px;
+    border-radius:6px;border:1px solid var(--hairline);color:var(--text-lo);
+    cursor:pointer;white-space:nowrap;user-select:none;
+  }
+  .summary-mode input{position:absolute;opacity:0;pointer-events:none;}
+  .summary-mode label:has(input:checked){background:var(--panel-2);color:var(--text-hi);border-color:var(--accent);font-weight:700;}
+  .summary-mode label:has(input:focus-visible){outline:2px solid var(--accent);}
   .summarize-hint{
     font-size:10.5px;color:var(--text-lo);text-align:center;
     line-height:1.3;width:100%;
@@ -602,6 +613,10 @@
   <div class="fab-area" id="fabArea">
     <div class="fab-group fab-group-transcript">
       <button id="summarizeBtn" class="btn-summarize" disabled>✨ 区間内の要約</button>
+      <div class="summary-mode" id="summaryMode" role="radiogroup" aria-label="要約の方式">
+        <label><input type="radio" name="summaryMode" value="points" checked>要点まとめ</label>
+        <label><input type="radio" name="summaryMode" value="detail">項目別(解説)</label>
+      </div>
       <div class="summarize-hint">① 始点と終点を「取得」→ ② ボタンを押す</div>
       <div class="summarize-status" id="summarizeStatus"></div>
       <div class="api-key-status" id="apiKeyStatus"></div>
@@ -756,6 +771,7 @@
         💰 <b>料金の目安</b>（字幕要約1回ごと。日本語を安全側（1文字＝1.5トークン）で見積もり、1ドル＝150円として計算した概算です。実際のレートや文章量により変わります）<br>
         ・短い範囲（5〜10分程度の字幕）を要約：1回あたり<b>1〜2円程度</b><br>
         ・一度に要約できる最大の長さ（50,000文字）を要約：1回あたり<b>最大でも13円程度</b><br>
+        ・「項目別（解説）」は出力が長いため、1回あたりの料金が要点まとめより少し高くなります（短い範囲で<b>3〜5円程度</b>、最大の長さ（15,000文字）で<b>最大でも13円程度</b>）<br>
         料金はこのアプリの開発者にではなく、Anthropic社に直接支払う形になります。
       </div>
 
@@ -888,6 +904,12 @@
 (function(){
   // 「✨ 区間内の要約」ボタンの結果表示（成功・失敗）を出しておく時間（ミリ秒）
   const SUMMARIZE_FLASH_MS = 3000;
+  // 要約方式ごとの設定。「項目別（解説）」は出力が長いので max_tokens と字幕の上限を別に持つ
+  const SUMMARY_MODE_KEY = 'stSummaryMode';
+  const SUMMARY_MODES = {
+    points: { maxTokens: 2048,  maxChars: 50000 },
+    detail: { maxTokens: 12000, maxChars: 15000 },
+  };
   const toast = document.getElementById('toast');
   function showToast(msg, duration){
     toast.textContent = msg;
@@ -2242,11 +2264,38 @@
     return filtered.map(s=> s.text).join('\n');
   }
 
-  async function callClaudeForSummary(text, startSec, endSec){
+  const DETAIL_SYSTEM_PROMPT = [
+    'あなたは動画の字幕テキストを、項目別の読みやすい解説文に整えるアシスタントです。',
+    '',
+    '【構成】',
+    '- 話の流れに沿って、内容のまとまりごとに項目を立てる。項目数は内容に合わせて決める（多すぎず少なすぎず）。',
+    '- 各項目の見出しは「## ① 〇〇について」「## ② ▽▽について」の形にする。番号は丸数字（①②③…）、〇〇▽▽はその項目の内容を表す短い言葉。',
+    '- 各見出しの下に、その部分の解説を、字幕の言葉をできるだけ生かした文章で書く。要約して短くしすぎない。',
+    '- 手順の説明が続く部分は、番号つきの手順や箇条書きにしてよい。',
+    '',
+    '【整えてよい範囲（これ以外はしない）】',
+    '- 「えー」「あのー」などのつなぎの言葉を除く。',
+    '- 句読点をつける。',
+    '- 段落に分ける。',
+    '- 明らかな聞き間違い（自動生成字幕の誤り）を、文脈から直す。',
+    '',
+    '【禁止】',
+    '- 内容を足さない。言い換えて意味を変えない。字幕に無いことを推測して書かない。',
+    '- 字幕の中の挨拶、自己紹介、宣伝、チャンネル登録のお願いなどは、項目にしない。',
+    '- 最初と最後に、挨拶やまとめのコメントを付けない。',
+    '',
+    '【出力形式】',
+    'Markdownだけを出力する（前置きや後書きの文章は無し）。「## ① 」から始めて、最後の項目の解説で終わる。',
+  ].join('\n');
+
+  async function callClaudeForSummary(text, startSec, endSec, mode){
     const apiKey = getAnthropicKey();
     if(!apiKey) throw new Error('Anthropic APIキーが設定されていません。⚙ボタンから設定してください。');
-    const systemPrompt = 'あなたは動画の字幕テキストを要約するアシスタントです。';
-    const userPrompt = '以下はYouTube動画の字幕テキストです（' + fmtTime(startSec) + '〜' + fmtTime(endSec) + 'の範囲）。\n要点を日本語で箇条書きにまとめてください。\n重要なポイントには、おおよその時刻（例: 12:30頃）を添えてください。\n専門用語や固有名詞はそのまま残してください。\n\n---\n' + text;
+    const cfg = SUMMARY_MODES[mode] || SUMMARY_MODES.points;
+    const systemPrompt = mode === 'detail' ? DETAIL_SYSTEM_PROMPT : 'あなたは動画の字幕テキストを要約するアシスタントです。';
+    const userPrompt = mode === 'detail'
+      ? '以下はYouTube動画の字幕テキストです（' + fmtTime(startSec) + '〜' + fmtTime(endSec) + 'の範囲）。\n指示に従って、項目別の解説に整えてください。\n\n---\n' + text
+      : '以下はYouTube動画の字幕テキストです（' + fmtTime(startSec) + '〜' + fmtTime(endSec) + 'の範囲）。\n要点を日本語で箇条書きにまとめてください。\n重要なポイントには、おおよその時刻（例: 12:30頃）を添えてください。\n専門用語や固有名詞はそのまま残してください。\n\n---\n' + text;
     const res = await fetch('https://api.anthropic.com/v1/messages', {
       method: 'POST',
       headers: {
@@ -2257,7 +2306,7 @@
       },
       body: JSON.stringify({
         model: 'claude-haiku-4-5',
-        max_tokens: 2048,
+        max_tokens: cfg.maxTokens,
         system: systemPrompt,
         messages: [{ role: 'user', content: userPrompt }],
       }),
@@ -2269,8 +2318,22 @@
       throw new Error((err.error && err.error.message) || 'API呼び出しに失敗しました（' + res.status + '）');
     }
     const data = await res.json();
-    return data.content[0].text;
+    return { text: data.content[0].text, truncated: data.stop_reason === 'max_tokens' };
   }
+
+  // 要約方式の選択（ブラウザに記憶）
+  const summaryModeRadios = Array.from(document.querySelectorAll('input[name=summaryMode]'));
+  function summaryModeValue(){
+    const r = summaryModeRadios.find(x=>x.checked);
+    return r ? r.value : 'points';
+  }
+  try{
+    const saved = localStorage.getItem(SUMMARY_MODE_KEY);
+    summaryModeRadios.forEach(r=>{ r.checked = (r.value === (SUMMARY_MODES[saved] ? saved : 'points')); });
+  }catch(e){}
+  summaryModeRadios.forEach(r=>r.addEventListener('change', ()=>{
+    try{ localStorage.setItem(SUMMARY_MODE_KEY, summaryModeValue()); }catch(e){}
+  }));
 
   summarizeBtn.addEventListener('click', async ()=>{
     if(summarizing) return;
@@ -2331,17 +2394,18 @@
         showToast('指定した範囲（' + fmtTime(startSec) + '〜' + fmtTime(endSec) + '）に字幕がありませんでした');
         return;
       }
-      if(extracted.length > 50000){
-        showToast('字幕が長すぎます（50,000文字超）。範囲を狭めてください');
+      const maxChars = SUMMARY_MODES[summaryModeValue()].maxChars;
+      if(extracted.length > maxChars){
+        showToast('字幕が長すぎます（' + maxChars.toLocaleString() + '文字超）。範囲を狭めてください');
         return;
       }
 
       summarizeBtn.textContent = '要約中…';
-      const summary = await callClaudeForSummary(extracted, startSec, endSec);
+      const { text: summary, truncated } = await callClaudeForSummary(extracted, startSec, endSec, summaryModeValue());
       let autoCopied = false;
       try{ await navigator.clipboard.writeText(summary); autoCopied = true; }catch(e){}
       if(autoCopied){
-        showToast('要約をコピーしました');
+        showToast(truncated ? '長すぎて、途中までになりました（取れた分はコピーしました）。区間を短くして、もう一度お試しください' : '要約をコピーしました', truncated ? 6000 : undefined);
         resetBookmarks();  // 取得した時刻3枠とチェックをクリア（成功時のみ）
         outcome = 'ok';
       }else{
