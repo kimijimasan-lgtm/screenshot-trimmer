@@ -509,6 +509,9 @@
   }
   .btn-summarize:hover{filter:brightness(1.1);}
   .btn-summarize[disabled]{opacity:.35;cursor:default;}
+  .btn-summarize.flash-ok,.btn-summarize.flash-err{opacity:1;cursor:default;filter:none;white-space:normal;}
+  .btn-summarize.flash-ok{background:#15803d;color:#fff;}
+  .btn-summarize.flash-err{background:#b91c1c;color:#fff;}
 
   /* ---------- summary overlay ---------- */
   .summary-overlay{
@@ -883,6 +886,8 @@
 <script src="https://www.youtube.com/iframe_api"></script>
 <script>
 (function(){
+  // 「✨ 区間内の要約」ボタンの結果表示（成功・失敗）を出しておく時間（ミリ秒）
+  const SUMMARIZE_FLASH_MS = 3000;
   const toast = document.getElementById('toast');
   function showToast(msg, duration){
     toast.textContent = msg;
@@ -1495,6 +1500,7 @@
   }
 
   function resetBookmarks(){
+    if(typeof clearSummarizeFlash === 'function') clearSummarizeFlash();
     bmTimes.fill(null);
     bmNext = 0;
     bmChecks.forEach(c=>{ c.checked = false; });
@@ -1530,10 +1536,30 @@
     }
   }
 
+  // ボタンの結果表示（成功・失敗）。表示中は押せない。タイマーは1本だけ持つ
+  const SUMMARIZE_LABEL = summarizeBtn.textContent;
+  let summarizeFlashTimer = null;
+  function clearSummarizeFlash(){
+    if(summarizeFlashTimer){ clearTimeout(summarizeFlashTimer); summarizeFlashTimer = null; }
+    if(summarizeBtn.classList.contains('flash-ok') || summarizeBtn.classList.contains('flash-err')){
+      summarizeBtn.classList.remove('flash-ok', 'flash-err');
+      if(!summarizing) summarizeBtn.textContent = SUMMARIZE_LABEL;
+    }
+    if(typeof updateSummarizeBtn === 'function') updateSummarizeBtn();
+  }
+  function flashSummarizeBtn(ok, label){
+    if(summarizeFlashTimer){ clearTimeout(summarizeFlashTimer); summarizeFlashTimer = null; }
+    summarizeBtn.classList.remove('flash-ok', 'flash-err');
+    summarizeBtn.classList.add(ok ? 'flash-ok' : 'flash-err');
+    summarizeBtn.textContent = label;
+    summarizeBtn.disabled = true;
+    summarizeFlashTimer = setTimeout(clearSummarizeFlash, SUMMARIZE_FLASH_MS);
+  }
+
   function updateSummarizeBtn(){
     if(summarizing){ summarizeBtn.disabled = true; return; }
     const checkedCount = bmChecks.filter(c=>c.checked).length;
-    summarizeBtn.disabled = checkedCount !== 2;
+    summarizeBtn.disabled = checkedCount !== 2 || !!summarizeFlashTimer;
     if(checkedCount < 2){
       summarizeStatusEl.textContent = 'あと：タイムスタンプを2つ選ぶ';
       summarizeStatusEl.className = 'summarize-status';
@@ -1553,6 +1579,7 @@
       const oldest = bmCheckOrder.shift();
       bmChecks[oldest].checked = false;
     }
+    if(bmCheckOrder.length === 2 && summarizeFlashTimer) clearSummarizeFlash();  // チェックが2つ揃ったら表示を待たず戻す
     updateSummarizeBtn();
   }
 
@@ -2281,7 +2308,8 @@
     try{ getActivePlayer().pause(); }catch(e){}
     summarizing = true;
     summarizeBtn.disabled = true;
-    const origLabel = summarizeBtn.textContent;
+    const origLabel = SUMMARIZE_LABEL;
+    let outcome = 'fail';  // 'ok' | 'copyFail' | 'fail'（ボタンの結果表示用）
     setStatus('');
 
     try{
@@ -2315,11 +2343,13 @@
       if(autoCopied){
         showToast('要約をコピーしました');
         resetBookmarks();  // 取得した時刻3枠とチェックをクリア（成功時のみ）
+        outcome = 'ok';
       }else{
         // コピー失敗時だけ結果画面を出して手でコピーできるようにする（チェック・時刻は残す）
         summaryTextEl.textContent = summary;
         summaryNotice.classList.add('show');
         summaryOverlay.classList.add('show');
+        outcome = 'copyFail';
       }
     }catch(err){
       setStatus(err.message, true);
@@ -2327,6 +2357,9 @@
       summarizing = false;
       summarizeBtn.textContent = origLabel;
       updateSummarizeBtn();
+      if(outcome === 'ok') flashSummarizeBtn(true, '✓ クリップボードに入りました');
+      else if(outcome === 'copyFail') flashSummarizeBtn(false, '✕ コピーできませんでした');
+      else flashSummarizeBtn(false, '✕ 失敗しました');
     }
   });
 
