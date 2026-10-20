@@ -344,20 +344,29 @@
   /* 字幕の枠の案内バー：動画エリアの真上の細い1行（動画には重ねない。表示/非表示は高さのなめらかな変化で、ガタつかせない） */
   .video-col{flex:1;min-width:200px;min-height:0;display:flex;flex-direction:column;}
   .video-col .video-pane{flex:1;min-height:0;min-width:0;}
+  /* 帯の高さは中身で決まる（広いと1行、とても狭いとボタンが2行目へ折り返す）。表示/非表示は grid の 0fr↔1fr でなめらかに畳む */
   .caption-hint{
-    flex:0 0 auto;height:0;overflow:hidden;transition:height .25s ease;
+    flex:0 0 auto;display:grid;grid-template-rows:0fr;transition:grid-template-rows .25s ease;
+    container-type:inline-size;
     background:#fff6db;border-left:5px solid #e8a317;color:#1f2430;
   }
-  .caption-hint.reserve{height:36px;}
+  .caption-hint.reserve{grid-template-rows:1fr;}
+  .caption-hint-clip{min-height:0;overflow:hidden;}
   .caption-hint-inner{
-    height:36px;display:flex;align-items:center;gap:8px;padding:0 8px 0 10px;
-    font-size:12.5px;font-weight:700;white-space:nowrap;
+    display:flex;flex-wrap:wrap;align-items:center;gap:4px 8px;padding:5px 8px 5px 10px;
+    font-size:12.5px;font-weight:700;
     opacity:0;pointer-events:none;transition:opacity .2s ease;
   }
   .caption-hint.show .caption-hint-inner{opacity:1;pointer-events:auto;}
-  .caption-hint-inner > span{flex:1 1 auto;min-width:0;overflow:hidden;text-overflow:ellipsis;}
+  .caption-hint-text{flex:1 0 auto;white-space:nowrap;}  /* 文は省略せず、必要な幅を先に確保する */
+  .caption-hint-btns{display:flex;gap:8px;flex:0 0 auto;margin-left:auto;}
   .caption-hint button{
-    flex:0 0 auto;border-radius:6px;font-weight:700;font-size:12px;cursor:pointer;padding:5px 10px;
+    flex:0 0 auto;border-radius:6px;font-weight:700;font-size:12px;cursor:pointer;padding:5px 10px;white-space:nowrap;
+  }
+  .caption-hint .ch-done .short{display:none;}
+  @container (max-width: 560px){
+    .caption-hint .ch-done .long{display:none;}
+    .caption-hint .ch-done .short{display:inline;}
   }
   .caption-hint .ch-go{background:#2c5cc5;color:#fff;border:none;}
   .caption-hint .ch-go:hover{background:#244ea8;}
@@ -692,10 +701,14 @@
 <main id="view-watch">
   <div class="video-col">
   <div class="caption-hint" id="captionHint" role="note">
-    <div class="caption-hint-inner">
-      <span>動画に字幕の枠が出てじゃまなときは、こちら</span>
-      <button type="button" class="ch-go" id="captionHintGo">手順を見る</button>
-      <button type="button" class="ch-done" id="captionHintDone">✓ 設定した（もう表示しない）</button>
+    <div class="caption-hint-clip">
+      <div class="caption-hint-inner">
+        <span class="caption-hint-text">字幕の枠がじゃまなときは？</span>
+        <span class="caption-hint-btns">
+          <button type="button" class="ch-go" id="captionHintGo">手順を見る</button>
+          <button type="button" class="ch-done" id="captionHintDone" title="設定した（もう表示しない）"><span class="long">✓ 設定した（もう表示しない）</span><span class="short">✓ 設定した</span></button>
+        </span>
+      </div>
     </div>
   </div>
   <div class="video-pane" id="videoPane">
