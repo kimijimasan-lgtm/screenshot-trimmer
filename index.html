@@ -536,11 +536,10 @@
   .summary-copy.copied{background:#4ade80;}
   .summary-close{background:var(--panel);color:var(--text-lo);border:1px solid var(--hairline) !important;}
   .summary-close:hover{color:var(--text-hi);}
-  .summary-autoclose-hint{
-    font-size:11px;text-align:center;color:var(--text-lo);opacity:.6;
-    min-height:1.2em;visibility:hidden;
+  .summary-notice{
+    font-size:12px;color:var(--text-lo);display:none;
   }
-  .summary-autoclose-hint.show{visibility:visible;}
+  .summary-notice.show{display:block;}
 </style>
 </head>
 <body>
@@ -721,7 +720,7 @@
       <button class="summary-copy" id="summaryCopyBtn">コピー</button>
       <button class="summary-close" id="summaryCloseBtn">閉じる</button>
     </div>
-    <div class="summary-autoclose-hint" id="summaryAutoCloseHint">まもなく閉じます</div>
+    <div class="summary-notice" id="summaryNotice">コピーできませんでした。文字を選んで、Ctrl+C でコピーしてください</div>
   </div>
 </div>
 
@@ -884,9 +883,6 @@
 <script src="https://www.youtube.com/iframe_api"></script>
 <script>
 (function(){
-  // 要約結果の自動クローズ設定（ミリ秒）
-  const SUMMARY_AUTOCLOSE_MS = 2500;        // コピー成功から自動で閉じるまで
-  const SUMMARY_AUTOCLOSE_RESUME_MS = 1000; // マウスを外してからタイマー再開まで
   const toast = document.getElementById('toast');
   function showToast(msg, duration){
     toast.textContent = msg;
@@ -2281,6 +2277,8 @@
 
     const startSec = Math.min(times[0], times[1]);
     const endSec = Math.max(times[0], times[1]);
+    // 押した瞬間に動画を一時停止（失敗しても再開はしない）
+    try{ getActivePlayer().pause(); }catch(e){}
     summarizing = true;
     summarizeBtn.disabled = true;
     const origLabel = summarizeBtn.textContent;
@@ -2314,15 +2312,14 @@
       const summary = await callClaudeForSummary(extracted, startSec, endSec);
       let autoCopied = false;
       try{ await navigator.clipboard.writeText(summary); autoCopied = true; }catch(e){}
-      document.getElementById('summaryText').textContent = summary;
-      resetSummaryAutoClose();
-      summaryCopySucceeded = false;
-      document.getElementById('summaryOverlay').classList.add('show');
       if(autoCopied){
-        showSummaryCopied(document.getElementById('summaryCopyBtn'));
         showToast('要約をコピーしました');
-        summaryCopySucceeded = true;
-        scheduleSummaryAutoClose(SUMMARY_AUTOCLOSE_MS);
+        resetBookmarks();  // 取得した時刻3枠とチェックをクリア（成功時のみ）
+      }else{
+        // コピー失敗時だけ結果画面を出して手でコピーできるようにする（チェック・時刻は残す）
+        summaryTextEl.textContent = summary;
+        summaryNotice.classList.add('show');
+        summaryOverlay.classList.add('show');
       }
     }catch(err){
       setStatus(err.message, true);
@@ -2337,70 +2334,23 @@
   let summaryCopyTimer = null;
   function showSummaryCopied(btn){
     if(summaryCopyTimer) clearTimeout(summaryCopyTimer);
-    const keepMs = Math.max(2000, SUMMARY_AUTOCLOSE_MS + 500); // 閉じるまで「✓ コピーしました」を見せる
     btn.textContent = '✓ コピーしました';
     btn.classList.add('copied');
     summaryCopyTimer = setTimeout(()=>{
       btn.textContent = 'コピー';
       btn.classList.remove('copied');
       summaryCopyTimer = null;
-    }, keepMs);
+    }, 2000);
   }
 
-  // 要約結果の自動クローズ
+  // コピー失敗時のみ表示する要約結果画面
   const summaryOverlay = document.getElementById('summaryOverlay');
-  const summaryBox = summaryOverlay.querySelector('.summary-box');
   const summaryTextEl = document.getElementById('summaryText');
-  const summaryHint = document.getElementById('summaryAutoCloseHint');
-  let summaryCloseTimer = null;
-  let summaryResumeTimer = null;
-  let summaryAutoCloseCancelled = false;
-  function clearSummaryTimers(){
-    if(summaryCloseTimer){ clearTimeout(summaryCloseTimer); summaryCloseTimer = null; }
-    if(summaryResumeTimer){ clearTimeout(summaryResumeTimer); summaryResumeTimer = null; }
-    summaryHint.classList.remove('show');
-  }
-  function resetSummaryAutoClose(){
-    clearSummaryTimers();
-    summaryAutoCloseCancelled = false;
-  }
+  const summaryNotice = document.getElementById('summaryNotice');
   function closeSummary(){
-    clearSummaryTimers();
     summaryOverlay.classList.remove('show');
+    summaryNotice.classList.remove('show');
   }
-  function scheduleSummaryAutoClose(ms){
-    if(summaryAutoCloseCancelled) return;
-    clearSummaryTimers();
-    if(summaryBox.matches(':hover')) return; // マウスが乗っている間は数えない（外れたら再開）
-    summaryHint.classList.add('show');
-    summaryCloseTimer = setTimeout(closeSummary, ms);
-  }
-  function cancelSummaryAutoClose(){
-    summaryAutoCloseCancelled = true;
-    clearSummaryTimers();
-  }
-  summaryBox.addEventListener('mouseenter', ()=>{ clearSummaryTimers(); });
-  summaryBox.addEventListener('mouseleave', ()=>{
-    if(summaryAutoCloseCancelled || !summaryWasCopied()) return;
-    if(summaryResumeTimer) clearTimeout(summaryResumeTimer);
-    summaryResumeTimer = setTimeout(()=>{ summaryResumeTimer = null; scheduleSummaryAutoClose(SUMMARY_AUTOCLOSE_MS); }, SUMMARY_AUTOCLOSE_RESUME_MS);
-  });
-  // コピー成功済みか（コピー失敗時は自動で閉じないので、マウスを外しても再開しない）
-  let summaryCopySucceeded = false;
-  function summaryWasCopied(){ return summaryCopySucceeded; }
-  // 画面内のクリック（ボタン以外）：自動クローズをやめる
-  summaryBox.addEventListener('pointerdown', (e)=>{
-    if(e.target.closest('button')) return;
-    cancelSummaryAutoClose();
-  });
-  // スクロール・文字選択：タイマーを止める
-  summaryTextEl.addEventListener('scroll', cancelSummaryAutoClose);
-  summaryTextEl.addEventListener('wheel', cancelSummaryAutoClose, {passive:true});
-  document.addEventListener('selectionchange', ()=>{
-    if(!summaryOverlay.classList.contains('show')) return;
-    const sel = window.getSelection();
-    if(sel && !sel.isCollapsed && summaryTextEl.contains(sel.anchorNode)) cancelSummaryAutoClose();
-  });
   document.addEventListener('keydown', (e)=>{
     if(e.key === 'Escape' && summaryOverlay.classList.contains('show')) closeSummary();
   });
@@ -2412,8 +2362,6 @@
       const already = btn.classList.contains('copied');
       showSummaryCopied(btn);
       if(!already) showToast('要約をコピーしました');
-      summaryCopySucceeded = true;
-      scheduleSummaryAutoClose(SUMMARY_AUTOCLOSE_MS);
     }catch(e){
       showToast('コピーできませんでした。文字を選んで Ctrl+C でコピーしてください', 4000);
     }
