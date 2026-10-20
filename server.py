@@ -143,8 +143,11 @@ def fetch_chapters(video_id):
     失敗時は (None, エラーメッセージ) を返す。チャプターが無い動画は chapters=[] で成功扱い。
     """
     url = f'https://www.youtube.com/watch?v={video_id}'
+    # lang=ja：YouTubeが日本語の動画のチャプター題名を英語に自動翻訳して返すのを防ぐ
+    # （Accept-Languageヘッダーでは効かず、extractor-argsで指定すると原文の題名になる）
     cmd = ['yt-dlp', '--skip-download', '--dump-single-json',
-           '--no-playlist', '--no-warnings', url]
+           '--no-playlist', '--no-warnings',
+           '--extractor-args', 'youtube:lang=ja', url]
     try:
         proc = subprocess.run(cmd, capture_output=True, timeout=45)
     except subprocess.TimeoutExpired:

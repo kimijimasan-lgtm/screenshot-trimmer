@@ -252,6 +252,7 @@ claude --model claude-opus-4-6 --dangerously-skip-permissions
 
 ### チャプター機能（localhost のみ）
 - `server.py` の `/api/chapters?v=動画ID`：yt-dlp で情報だけ取得（ダウンロードなし）し、`{"chapters":[{"start","end","title"}], "duration":秒}` を返す。チャプターが無い動画は `chapters:[]`。結果は動画ID単位でメモリに保存（再取得しない）。エラーはやさしい日本語メッセージ。サーバーは並列処理(ThreadingHTTPServer)
+- チャプター取得の yt-dlp には `--extractor-args youtube:lang=ja` を付ける(付けないと、日本語動画のチャプター題名が英語に自動翻訳されて返ることがある。Accept-Languageヘッダーでは直らない)。字幕取得(`/api/transcript`)には付けていない
 - 右パネルの「📑 チャプター」：一覧を重ねて表示（各行：開始時刻・タイトル・▶移動再生・取得）。再生中の章は強調。Esc・外側クリックで閉じる
 - 「取得」：その章の開始・終了(次章の開始／最後は動画の長さ)を取得枠の1・2番目に入れ、2つともチェック（既存の時刻・チェックは置き換え）。トースト「チャプター『…』を取得しました（M:SS〜M:SS）」
 - 現在再生中の章のタイトルを、現在時刻の横に小さく表示。動画を読み込むと裏で自動取得（失敗しても何も出さない）
