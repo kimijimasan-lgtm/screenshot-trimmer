@@ -3,6 +3,7 @@
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
+<!--ST_MODE-->  <!-- server.py が、ここに今のモード（dev/dist）を差し込みます -->
 <meta name="referrer" content="strict-origin-when-cross-origin">
 <title>スクショトリマー</title>
 <style>
@@ -228,6 +229,8 @@
   .settings-menu-state.on{background:rgba(46,125,50,.1);color:#2e7d32;border:1px solid rgba(46,125,50,.3);}
   .settings-menu-state.off{background:#eef0f4;color:#8b8f9c;border:1px solid #d8dbe2;}
   .settings-menu-arrow{font-size:17px;font-weight:700;color:#8b8f9c;flex-shrink:0;line-height:1;}
+  /* 配布モードでは、ローカル動画モードを出さない（server.py が <html> に st-dist を付ける） */
+  .st-dist #modeToggle{display:none;}
   /* 設定メニューの小さな切り替え（整理するときメモを左半分に開く） */
   .settings-switch{
     display:flex;align-items:flex-start;gap:8px;cursor:pointer;user-select:none;
@@ -240,6 +243,17 @@
     line-break:strict;text-wrap:pretty;
   }
   .settings-switch-text span{display:inline-block;}  /* 文節の途中で改行させない */
+  /* 案内カードの「設定を開く」から来たとき、どの項目かが分かるよう一瞬光らせる
+     （クラス名は settings-flash。キャプチャの白い画面エフェクト .flash と、ぶつけないこと） */
+  .settings-switch.settings-flash{animation:settingsFlash 1.5s ease-out 1;}
+  @keyframes settingsFlash{
+    0%,100%{background:#f7f8fa;border-color:#d8dbe2;box-shadow:0 0 0 0 rgba(232,163,23,0);}
+    15%,55%{background:#fff3d0;border-color:#e8a317;box-shadow:0 0 0 4px rgba(232,163,23,.35);}
+  }
+  @media (prefers-reduced-motion: reduce){
+    /* 動きを減らす設定の人には、点滅させず、少しのあいだ色を変えるだけにする */
+    .settings-switch.settings-flash{animation:none;background:#fff3d0;border-color:#e8a317;}
+  }
   .settings-back{
     display:inline-flex;align-items:center;gap:4px;margin-bottom:14px;font-family:inherit;
     padding:7px 13px;border-radius:8px;border:1px solid #d0d3da;background:#fff;
@@ -648,6 +662,8 @@
     background:#fff6db;border:4px solid #e8a317;
     border-radius:16px;box-shadow:0 14px 40px rgba(10,12,18,.5);
     padding:18px 18px 18px 22px;cursor:pointer;
+    /* 画面が低いときでも、下のボタンにかぶらないよう、高さの上限を決めて中でスクロールさせる */
+    max-height:calc(100vh - 160px);overflow-y:auto;overscroll-behavior:contain;
     opacity:0;pointer-events:none;transition:opacity .2s ease, transform .2s ease;
   }
   .memo-notice.show{
@@ -676,6 +692,20 @@
     background:#fff;border:2px solid #d8a93a;border-bottom-width:5px;
     border-radius:9px;padding:1px 11px;margin:0 3px;white-space:nowrap;
   }
+  /* 初回だけ出す、追加のお知らせ（メモを使わない人向け）と、その中のボタン */
+  .memo-notice-extra{
+    margin-top:12px;padding-top:12px;border-top:2px dashed #e8c877;
+    font-size:clamp(15px,1.7vw,21px);line-height:1.6;font-weight:700;color:#4a4330;
+    line-break:strict;text-wrap:pretty;
+  }
+  .memo-notice-extra .nb{display:inline-block;}
+  .memo-notice-btn{
+    display:inline-block;margin-top:10px;
+    font-family:inherit;font-size:clamp(15px,1.6vw,20px);font-weight:800;
+    color:#fff;background:#2c5cc5;border:none;border-radius:10px;
+    padding:9px 18px;cursor:pointer;
+  }
+  .memo-notice-btn:hover{background:#2450ad;}
   .memo-notice-close{
     /* 右に回り込ませる。上の1〜2行だけがよけ、下の行は幅いっぱい使える */
     float:right;margin:0 0 6px 12px;
@@ -1191,6 +1221,22 @@
 <script src="https://www.youtube.com/iframe_api"></script>
 <script>
 (function(){
+  // ---------- 配布モード／開発モード ----------
+  // server.py が index.html の <!--ST_MODE--> にモードを差し込む。
+  // 差し込みが無いとき（公開URLなど）は、今までどおりの開発モード扱いにする。
+  //   配布モード：ローカル動画モードを出さない／5秒ごとに合図を送る（サーバーの自動終了のため）
+  //   開発モード：今までどおり
+  const APP_MODE = (window.__ST_MODE__ === 'dist') ? 'dist' : 'dev';
+  const DIST_MODE = APP_MODE === 'dist';
+  const HEARTBEAT_MS = 5000;
+  // サーバーが要る機能（要約・チャプター）を、サーバー無しで開いたときの案内
+  const SERVER_ONLY_MSG = DIST_MODE
+    ? 'この機能は、スクショトリマー.exe から開いた画面で使えます'
+    : 'この機能は、スクショトリマーのフォルダにある start.bat から開いた画面で使えます';
+  // yt-dlp がうまく動かなかったときの、やさしい案内（押したときだけ出る）
+  const SUB_FAIL_MSG = '字幕が取れませんでした。YouTube側の変更で、一時的に使えなくなることがあります。ほかの機能は、そのまま使えます';
+  const CHAP_FAIL_MSG = 'チャプターが取れませんでした。YouTube側の変更で、一時的に使えなくなることがあります。ほかの機能は、そのまま使えます';
+
   // 字幕の枠の案内バー：「設定した」を押したことの記憶キー（旧 stCaptionHintDismissed は使わない）
   const CAPTION_HINT_KEY = 'stCaptionHintDone';
   // 「✨ 区間内の要約」ボタンの結果表示（成功・失敗）を出しておく時間（ミリ秒）
@@ -1211,7 +1257,8 @@
   }
 
   // メモを開いたときの案内。右半分の上に、大きく目立つカードで出す（ふつうのトーストとは別物）
-  const MEMO_NOTICE_MS = 12000;
+  const MEMO_NOTICE_MS = 12000;        // いつもの案内
+  const MEMO_NOTICE_LONG_MS = 20000;   // 初回のお知らせが入るとき（読んでボタンを押す時間を見る）
   const memoNotice = document.getElementById('memoNotice');
   const memoNoticeBody = document.getElementById('memoNoticeBody');
   function hideMemoNotice(){
@@ -1222,8 +1269,7 @@
   //   文字列               … そのまま
   //   {key:'Win + →', after} … キーのような枠に入れて、続く助詞ごと1かたまりにする
   //   {em:'…'}             … 目立たせる文字（色つき）
-  function showMemoNotice(parts){
-    memoNoticeBody.textContent = '';
+  function fillNoticeParts(target, parts){
     parts.forEach(part=>{
       const box = document.createElement('span');
       box.className = 'nb';
@@ -1241,11 +1287,42 @@
         box.appendChild(k);
         if(part.after) box.appendChild(document.createTextNode(part.after));
       }
-      memoNoticeBody.appendChild(box);
+      target.appendChild(box);
     });
+  }
+  // extra を渡すと、点線で区切ったお知らせと「設定を開く」ボタンを足し、表示時間を延ばす
+  function showMemoNotice(parts, extra){
+    memoNoticeBody.textContent = '';
+    fillNoticeParts(memoNoticeBody, parts);
+    if(extra){
+      const box = document.createElement('div');
+      box.className = 'memo-notice-extra';
+      fillNoticeParts(box, extra);
+      const btn = document.createElement('button');
+      btn.type = 'button';
+      btn.className = 'memo-notice-btn';
+      btn.textContent = '設定を開く';
+      btn.addEventListener('click', ()=>{ openSettings('menu'); flashMemoToggle(); });
+      box.appendChild(document.createElement('br'));
+      box.appendChild(btn);
+      memoNoticeBody.appendChild(box);
+    }
     memoNotice.classList.add('show');
     clearTimeout(hideMemoNotice._t);
-    hideMemoNotice._t = setTimeout(hideMemoNotice, MEMO_NOTICE_MS);
+    hideMemoNotice._t = setTimeout(hideMemoNotice, extra ? MEMO_NOTICE_LONG_MS : MEMO_NOTICE_MS);
+  }
+  // 設定メニューの中の、その切り替えを一瞬光らせる（画面が低いときのために位置も合わせる）
+  function flashMemoToggle(){
+    const row = document.getElementById('openMemoToggle');
+    const box = row && row.closest('.settings-switch');
+    if(!box) return;
+    setTimeout(()=>{
+      try{ box.scrollIntoView({ block:'center' }); }catch(_){}
+      box.classList.remove('settings-flash');
+      void box.offsetWidth;            // アニメーションを初めからやり直させる
+      box.classList.add('settings-flash');
+      setTimeout(()=> box.classList.remove('settings-flash'), 1700);
+    }, 60);                            // 設定が開ききってから光らせる
   }
   memoNotice.addEventListener('click', hideMemoNotice);   // ×でも、どこを押しても閉じる
   function setStatus(msg, warn){
@@ -1452,6 +1529,8 @@
   const MEMO_URL = 'https://crossmemo.web.app/';
   const MEMO_WIN_NAME = 'crossmemo';          // 名前つきウィンドウ。何度押してもメモは増えない
   const OPEN_MEMO_KEY = 'stOpenMemoOnOrganize';
+  const MEMO_NOTICE_SHOWN_KEY = 'stMemoNoticeShown';  // 初回のお知らせを出したか
+  const COPY_NOTICE_SHOWN_KEY = 'stCopyNoticeShown';  // オフの人への初回の案内を出したか
   // 文節ごとに区切って渡す（言葉の途中で改行させないため）
   const MEMO_OPENED_PARTS = [
     'メモが', '左半分に', '開きました。',
@@ -1472,6 +1551,24 @@
     'アドレスバーの', '右にある、', 'ポップアップの', 'マークから',
     '『許可』を', '選んで、', 'もう一度', '『この範囲を全部に適用』を', '押してください'
   ];
+  // メモを使わない人へ、初回だけ出すお知らせ（カードの下に足す）
+  const MEMO_FIRST_PARTS = [
+    'PCスマホ連動メモを', '使わない場合は、', '設定で、',
+    '『全部に適用するとき、', 'メモを左半分に開く』を', 'オフにしてください'
+  ];
+  // 切り替えがオフの人へ、初回だけ出す案内（メモの代わり）
+  const COPY_NOTICE_PARTS = [
+    '整理した画像は、', 'ドラッグするか、', '右クリックで', 'コピーして、',
+    'お好きなアプリに', '貼り付けられます'
+  ];
+  // 一度出したら二度と出さない。出すときに記憶する
+  function takeOnce(key){
+    try{
+      if(localStorage.getItem(key) === '1') return false;
+      localStorage.setItem(key, '1');
+      return true;
+    }catch(_){ return false; }
+  }
   const openMemoToggle = document.getElementById('openMemoToggle');
   function getOpenMemoOnOrganize(){ return localStorage.getItem(OPEN_MEMO_KEY) !== '0'; }  // 未保存＝オン
   openMemoToggle.checked = getOpenMemoOnOrganize();
@@ -1483,11 +1580,15 @@
   // 「この範囲を全部に適用 →」のクリックの直後に、同期的に呼ぶこと
   //（時間のかかる処理のあとに呼ぶと、ポップアップがブロックされる）
   function openMemoHalf(){
-    if(!getOpenMemoOnOrganize()) return;
+    if(!getOpenMemoOnOrganize()){
+      // オフの人には、メモの代わりに、画像の渡し方を初回だけ案内する
+      if(takeOnce(COPY_NOTICE_SHOWN_KEY)) showMemoNotice(COPY_NOTICE_PARTS);
+      return;
+    }
     if(memoWin && !memoWin.closed){          // すでに開いていれば、開き直さず前に出す
       try{ memoWin.focus(); }catch(_){}
       refocusSelf();                         // フォーカスは、こちら（スクショトリマー）に戻す
-      showMemoNotice(MEMO_OPENED_PARTS);
+      showMemoNotice(MEMO_OPENED_PARTS, takeOnce(MEMO_NOTICE_SHOWN_KEY) ? MEMO_FIRST_PARTS : null);
       return;
     }
     // スクショトリマーのウィンドウがあるモニターの作業領域（screen は今いるモニターを返す）
@@ -1510,7 +1611,7 @@
     try{ win.moveTo(left, top); }catch(_){}
     try{ win.resizeTo(width, availH); }catch(_){}
     refocusSelf();                            // フォーカスは、こちら（スクショトリマー）に戻す
-    showMemoNotice(MEMO_OPENED_PARTS);
+    showMemoNotice(MEMO_OPENED_PARTS, takeOnce(MEMO_NOTICE_SHOWN_KEY) ? MEMO_FIRST_PARTS : null);
   }
 
   // メモを開くと、メモ側にフォーカスが移る。そのまま Win + → を押すとメモが右に行ってしまうので、
@@ -1808,6 +1909,11 @@
 
   modeTabYoutube.addEventListener('click', ()=>{ if(currentMode !== 'youtube') switchMode('youtube'); });
   modeTabLocal.addEventListener('click', ()=>{ if(currentMode !== 'local') switchMode('local'); });
+  // 配布モードでは、ローカル動画モードを出さない（ピルは CSS で隠し、切り替えも受け付けない）
+  if(DIST_MODE){
+    modeTabLocal.disabled = true;
+    localFileBtn.style.display = 'none';
+  }
 
   function loadLocalFile(file){
     if(!file) return;
@@ -1918,6 +2024,14 @@
     maybeOfferChannel(id);
     if(typeof prefetchChapters === 'function') prefetchChapters(id);
     if(typeof updateCaptionHint === 'function') updateCaptionHint();
+  }
+
+  // 配布モードだけ、5秒ごとにサーバーへ合図を送る。
+  // 画面を全部閉じると合図が止まり、サーバーが自分で終了する（残り続けないように）
+  if(DIST_MODE){
+    const ping = ()=>{ fetch('/api/ping', {cache:'no-store'}).catch(()=>{}); };
+    ping();
+    setInterval(ping, HEARTBEAT_MS);
   }
 
   // 字幕取得サーバーの有無を判定（localhost のみ）
@@ -2163,9 +2277,9 @@
         res = await fetch('/api/chapters?v=' + encodeURIComponent(videoId));
         body = await res.json();
       }catch(e){
-        throw new Error('チャプターの取得に失敗しました。サーバーが起動しているか確認してください');
+        throw new Error(CHAP_FAIL_MSG);
       }
-      if(!res.ok || body.error) throw new Error(body.error || 'チャプターを取得できませんでした');
+      if(!res.ok || body.error) throw new Error(body.error || CHAP_FAIL_MSG);
       state.data = body;
       return body;
     })();
@@ -2267,7 +2381,7 @@
     if(currentMode === 'local'){ showToast('YouTubeモードで使えます'); return; }
     if(!currentVideoId){ showToast('先にYouTube動画を読み込んでください'); return; }
     if(!transcriptServerAvailable){
-      showToast('この機能は、スクショトリマーのフォルダにある start.bat から開いた画面で使えます', 5000);
+      showToast(SERVER_ONLY_MSG, 5000);
       return;
     }
     const vid = currentVideoId;
@@ -3048,7 +3162,7 @@
       return;
     }
     if(!transcriptServerAvailable){
-      showToast('この機能は、スクショトリマーのフォルダにある start.bat から開いた画面で使えます', 5000);
+      showToast(SERVER_ONLY_MSG, 5000);
       return;
     }
 
@@ -3068,10 +3182,10 @@
         try{
           const res = await fetch('/api/transcript?v=' + encodeURIComponent(currentVideoId));
           const data = await res.json();
-          if(data.error){ showToast(data.error, 4000); return; }
+          if(data.error){ showToast(data.error, 6000); return; }
           cachedTranscript = { videoId: currentVideoId, text: data.transcript };
         }catch(e){
-          showToast('字幕の取得に失敗しました。サーバーが起動しているか確認してください', 4000);
+          showToast(SUB_FAIL_MSG, 6000);
           return;
         }
       }

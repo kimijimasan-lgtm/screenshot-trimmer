@@ -15,6 +15,6 @@ if not exist server.py (
 )
 
 echo Starting server...
-start "Screenshot Trimmer" cmd /c "python server.py & pause"
+start "Screenshot Trimmer" cmd /c "python server.py --dev & pause"
 timeout /t 3 /nobreak >nul
 start "" "http://localhost:8321/"

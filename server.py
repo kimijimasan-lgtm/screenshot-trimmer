@@ -1,6 +1,16 @@
 #!/usr/bin/env python3
 """スクショトリマー ローカルサーバー
 静的ファイル配信 + YouTube字幕取得API・チャプター取得API (yt-dlp)
+
+起動のしかた（2つのモード）
+  python server.py          … 配布モード（exe と同じ動き）
+  python server.py --dev    … 開発モード（start.bat が使う）
+  exe（PyInstaller でビルドしたもの）… いつも配布モード
+
+  配布モード : ブラウザを自動で開く。画面からの合図が途切れたら自分で終了する。
+               画面にはローカル動画モードを出さない。黒い画面には何も出さない。
+  開発モード : 今までどおり。ブラウザは start.bat が開く。自動終了しない。
+               ローカル動画モードも出る。黒い画面に状況を出す。
 """
 
 import http.server
@@ -12,7 +22,99 @@ import subprocess
 import sys
 import tempfile
 import threading
+import time
 import urllib.parse
+import urllib.request
+import webbrowser
+from functools import partial
+
+APP_ID = 'screenshot-trimmer'
+APP_VERSION = '0.2'
+
+DEFAULT_PORT = 8321
+HOST = '127.0.0.1'
+# ブラウザで開くときは localhost を使う。ホスト名が変わると、ブラウザの保存領域
+# （localStorage のAPIキーなど）が別物になってしまうため、今までと同じにそろえる
+OPEN_HOST = 'localhost'
+
+# PyInstaller でビルドすると sys.frozen が立つ
+FROZEN = getattr(sys, 'frozen', False)
+DEV_MODE = (not FROZEN) and ('--dev' in sys.argv)
+DIST_MODE = not DEV_MODE
+
+# exe と同じフォルダ（開発中は server.py と同じフォルダ）。配信もここから行う
+BASE_DIR = os.path.dirname(os.path.abspath(
+    sys.executable if FROZEN else __file__))
+
+# 画面からの合図（ハートビート）が途切れたら、自分で終了する（配布モードだけ）
+# テストのときだけ、環境変数で短くできる
+HEARTBEAT_TIMEOUT = int(os.environ.get('ST_HEARTBEAT_TIMEOUT', 300))  # 5分
+STARTUP_GRACE = int(os.environ.get('ST_STARTUP_GRACE', 120))          # 起動直後の猶予 2分
+HEARTBEAT_CHECK = int(os.environ.get('ST_HEARTBEAT_CHECK', 10))       # 見張る間隔
+
+# Windows で、yt-dlp を呼ぶたびに黒い窓が一瞬出るのを防ぐ
+CREATE_NO_WINDOW = 0x08000000 if os.name == 'nt' else 0
+
+# index.html に差し込む目印。ここをサーバーが書き換えて、画面にモードを伝える
+MODE_MARK = b'<!--ST_MODE-->'
+
+# yt-dlp がうまく動かなかったときの、やさしい案内（押したときだけ出る）
+MSG_SUB_FAIL = ('字幕が取れませんでした。YouTube側の変更で、'
+                '一時的に使えなくなることがあります。ほかの機能は、そのまま使えます')
+MSG_CHAP_FAIL = ('チャプターが取れませんでした。YouTube側の変更で、'
+                 '一時的に使えなくなることがあります。ほかの機能は、そのまま使えます')
+
+
+def log(msg):
+    """開発モードのときだけ、黒い画面に出す。
+    配布モード（exe・console=False）では標準出力が無く、print が落ちることがあるので何もしない。
+    """
+    if not DEV_MODE:
+        return
+    try:
+        sys.stdout.write(str(msg) + '\n')
+        sys.stdout.flush()
+    except Exception:
+        pass
+
+
+def show_error(text, title='スクショトリマー'):
+    """利用者に見せるエラー。配布モードでは黒い画面が無いので、Windowsのダイアログで出す。"""
+    if DEV_MODE:
+        log(text)
+        return
+    if os.name == 'nt':
+        try:
+            import ctypes
+            ctypes.windll.user32.MessageBoxW(0, text, title, 0x10)  # MB_ICONERROR
+            return
+        except Exception:
+            pass
+    log(text)
+
+
+_ytdlp_cache = []
+
+
+def ytdlp_cmd():
+    """yt-dlp の場所を返す。見つからなければ None。
+    同じフォルダに置いた yt-dlp.exe を優先し、無ければ今までどおり PATH から探す。
+    """
+    if _ytdlp_cache:
+        return _ytdlp_cache[0]
+    bundled = os.path.join(BASE_DIR, 'yt-dlp.exe')
+    found = bundled if os.path.exists(bundled) else shutil.which('yt-dlp')
+    _ytdlp_cache.append(found)
+    return found
+
+
+def run_ytdlp(args, timeout, cwd=None):
+    """yt-dlp を呼ぶ。黒い窓を出さない。見つからなければ None を返す。"""
+    exe = ytdlp_cmd()
+    if not exe:
+        return None
+    return subprocess.run([exe] + args, capture_output=True, timeout=timeout,
+                          cwd=cwd, creationflags=CREATE_NO_WINDOW)
 
 
 def find_best_subtitle(video_id, tmpdir):
@@ -33,15 +135,15 @@ def find_best_subtitle(video_id, tmpdir):
         if os.path.exists(srt_path):
             os.remove(srt_path)
 
-        cmd = [
-            'yt-dlp', '--skip-download',
+        args = [
+            '--skip-download',
             '--sub-format', 'srt',
             '--sub-lang', lang,
             '-o', out_path,
         ] + flags + [url]
 
         try:
-            subprocess.run(cmd, capture_output=True, timeout=30, cwd=tmpdir)
+            run_ytdlp(args, timeout=30, cwd=tmpdir)
         except (subprocess.TimeoutExpired, OSError):
             continue
 
@@ -145,23 +247,23 @@ def fetch_chapters(video_id):
     url = f'https://www.youtube.com/watch?v={video_id}'
     # lang=ja：YouTubeが日本語の動画のチャプター題名を英語に自動翻訳して返すのを防ぐ
     # （Accept-Languageヘッダーでは効かず、extractor-argsで指定すると原文の題名になる）
-    cmd = ['yt-dlp', '--skip-download', '--dump-single-json',
-           '--no-playlist', '--no-warnings',
-           '--extractor-args', 'youtube:lang=ja', url]
+    args = ['--skip-download', '--dump-single-json',
+            '--no-playlist', '--no-warnings',
+            '--extractor-args', 'youtube:lang=ja', url]
     try:
-        proc = subprocess.run(cmd, capture_output=True, timeout=45)
+        proc = run_ytdlp(args, timeout=45)
     except subprocess.TimeoutExpired:
         return None, 'チャプターの取得に時間がかかりすぎました。しばらくしてからやり直してください'
     except OSError:
-        return None, 'yt-dlpを実行できませんでした'
+        return None, MSG_CHAP_FAIL
 
-    if proc.returncode != 0:
-        return None, 'チャプターを取得できませんでした。通信状況や動画のURLを確認してください'
+    if proc is None or proc.returncode != 0:
+        return None, MSG_CHAP_FAIL
 
     try:
         info = json.loads(proc.stdout.decode('utf-8', errors='replace'))
     except ValueError:
-        return None, 'チャプターの情報を読み取れませんでした'
+        return None, MSG_CHAP_FAIL
 
     duration = info.get('duration')
     duration = int(duration) if isinstance(duration, (int, float)) else 0
@@ -181,18 +283,68 @@ def fetch_chapters(video_id):
     return {'chapters': chapters, 'duration': duration}, None
 
 
+# 画面からの合図（ハートビート）の、最後に届いた時刻
+_last_ping = [time.time()]
+_ping_lock = threading.Lock()
+
+
+def touch_ping():
+    with _ping_lock:
+        _last_ping[0] = time.time()
+
+
 class Handler(http.server.SimpleHTTPRequestHandler):
+    def log_message(self, fmt, *args):
+        # 配布モードでは何も出さない（開発モードは今までどおり）
+        if DEV_MODE:
+            super().log_message(fmt, *args)
+
     def do_GET(self):
         parsed = urllib.parse.urlparse(self.path)
 
-        if parsed.path == '/api/transcript':
+        if parsed.path in ('/', '/index.html'):
+            self.serve_index()
+        elif parsed.path == '/api/transcript':
             self.handle_transcript(parsed.query)
         elif parsed.path == '/api/chapters':
             self.handle_chapters(parsed.query)
-        elif parsed.path == '/api/health':
+        elif parsed.path == '/api/ping':
+            touch_ping()
             self.send_json({'status': 'ok'})
+        elif parsed.path == '/api/health':
+            self.send_json({
+                'status': 'ok',
+                'app': APP_ID,
+                'version': APP_VERSION,
+                'mode': 'dist' if DIST_MODE else 'dev',
+            })
         else:
             super().do_GET()
+
+    def serve_index(self):
+        """index.html に、今のモードを差し込んでから返す。
+        画面側は、これを見てローカル動画モードの出し分けと、合図の送信を決める。
+        """
+        path = os.path.join(BASE_DIR, 'index.html')
+        try:
+            with open(path, 'rb') as f:
+                body = f.read()
+        except OSError:
+            self.send_error(404, 'index.html not found')
+            return
+
+        mode = 'dist' if DIST_MODE else 'dev'
+        inject = ("<script>window.__ST_MODE__='" + mode + "';"
+                  "document.documentElement.className+=' st-" + mode + "';"
+                  "</script>").encode('utf-8')
+        body = body.replace(MODE_MARK, inject, 1)
+
+        self.send_response(200)
+        self.send_header('Content-Type', 'text/html; charset=utf-8')
+        self.send_header('Content-Length', str(len(body)))
+        self.send_header('Cache-Control', 'no-store')
+        self.end_headers()
+        self.wfile.write(body)
 
     def handle_transcript(self, query):
         params = urllib.parse.parse_qs(query)
@@ -206,11 +358,8 @@ class Handler(http.server.SimpleHTTPRequestHandler):
             self.send_json({'error': '動画IDの形式が正しくありません'}, 400)
             return
 
-        if not shutil.which('yt-dlp'):
-            self.send_json(
-                {'error': 'yt-dlpが見つかりません。インストールしてください'},
-                500,
-            )
+        if not ytdlp_cmd():
+            self.send_json({'error': MSG_SUB_FAIL}, 500)
             return
 
         with tempfile.TemporaryDirectory() as tmpdir:
@@ -247,11 +396,8 @@ class Handler(http.server.SimpleHTTPRequestHandler):
             self.send_json(cached)
             return
 
-        if not shutil.which('yt-dlp'):
-            self.send_json(
-                {'error': 'yt-dlpが見つかりません。インストールしてください'},
-                500,
-            )
+        if not ytdlp_cmd():
+            self.send_json({'error': MSG_CHAP_FAIL}, 500)
             return
 
         result, error = fetch_chapters(video_id)
@@ -272,31 +418,114 @@ class Handler(http.server.SimpleHTTPRequestHandler):
         self.wfile.write(body)
 
 
+def read_port():
+    """ポートは 8321 に固定。ただし、同じフォルダに port.txt があれば、その番号を使う
+    （ほかのソフトと本当にぶつかったときの、逃げ道）。
+    ※ポートを変えると、ブラウザの保存領域（APIキーなど）が別物になります。
+    """
+    path = os.path.join(BASE_DIR, 'port.txt')
+    try:
+        with open(path, 'r', encoding='utf-8') as f:
+            n = int(f.read().strip())
+        if 1024 <= n <= 65535:
+            return n
+    except Exception:
+        pass
+    return DEFAULT_PORT
+
+
+def is_our_server(port):
+    """そのポートで動いているのが、スクショトリマー自身かどうかを調べる。"""
+    try:
+        url = f'http://{HOST}:{port}/api/health'
+        with urllib.request.urlopen(url, timeout=2) as r:
+            data = json.loads(r.read().decode('utf-8', errors='replace'))
+        return data.get('app') == APP_ID
+    except Exception:
+        return False
+
+
+def open_browser(port):
+    try:
+        webbrowser.open(f'http://{OPEN_HOST}:{port}/')
+    except Exception:
+        pass
+
+
+def watchdog(server, started_at):
+    """画面からの合図が途切れたら、サーバーを終わらせる（配布モードだけ）。"""
+    while True:
+        time.sleep(HEARTBEAT_CHECK)
+        now = time.time()
+        if now - started_at < STARTUP_GRACE:
+            continue
+        with _ping_lock:
+            last = _last_ping[0]
+        if now - max(last, started_at) > HEARTBEAT_TIMEOUT:
+            log('画面からの合図が途切れたので、終了します')
+            try:
+                server.shutdown()
+            except Exception:
+                pass
+            return
+
+
+class Server(http.server.ThreadingHTTPServer):
+    # Windows では、これを True のままにすると、すでに使われているポートにも
+    # 束ねられてしまい、二重起動を見つけられない。必ず False にする
+    allow_reuse_address = False
+
+
 def main():
-    port = 8321
-    host = '127.0.0.1'
+    port = read_port()
+
+    # すでにスクショトリマーが動いていれば、画面をもう1枚開くだけにする
+    if is_our_server(port):
+        if DIST_MODE:
+            open_browser(port)          # 画面をもう1枚開くだけ
+        else:
+            log(f'すでに起動しています（ポート {port}）')
+        sys.exit(0)
 
     try:
-        server = http.server.ThreadingHTTPServer((host, port), Handler)
+        handler = partial(Handler, directory=BASE_DIR)
+        server = Server((HOST, port), handler)
     except OSError as e:
         err = getattr(e, 'winerror', None) or getattr(e, 'errno', None)
         if err in (10048, 98):
-            print(f'\nポート {port} は既に使用されています。')
-            print('別のサーバーが動いている場合は閉じてから再起動してください。')
-            print(f'または http://{host}:{port}/ を直接開いてください。')
-        else:
-            print(f'\nサーバーを起動できませんでした: {e}')
-        input('\nEnterキーで閉じます...')
+            if is_our_server(port):
+                # すでにスクショトリマーが動いている。画面をもう1枚開くだけにする
+                if DIST_MODE:
+                    open_browser(port)
+                else:
+                    log(f'すでに起動しています（ポート {port}）')
+                sys.exit(0)
+            show_error(
+                f'ポート {port} が、ほかのソフトに使われているため、'
+                '起動できませんでした。\n\n'
+                'そのソフトを閉じてから、もう一度お試しください。'
+            )
+            sys.exit(1)
+        show_error(f'サーバーを起動できませんでした。\n\n{e}')
         sys.exit(1)
 
-    print(f'\nスクショトリマー サーバー起動')
-    print(f'  URL: http://{host}:{port}/')
-    print(f'  終了: Ctrl+C\n')
+    started_at = time.time()
+    touch_ping()
+
+    if DIST_MODE:
+        threading.Thread(target=watchdog, args=(server, started_at),
+                         daemon=True).start()
+        open_browser(port)
+    else:
+        log('\nスクショトリマー サーバー起動（開発モード）')
+        log(f'  URL: http://{OPEN_HOST}:{port}/')
+        log('  終了: Ctrl+C\n')
 
     try:
         server.serve_forever()
     except KeyboardInterrupt:
-        print('\nサーバーを停止しました')
+        log('\nサーバーを停止しました')
+    finally:
         server.server_close()
 
 
