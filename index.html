@@ -228,6 +228,18 @@
   .settings-menu-state.on{background:rgba(46,125,50,.1);color:#2e7d32;border:1px solid rgba(46,125,50,.3);}
   .settings-menu-state.off{background:#eef0f4;color:#8b8f9c;border:1px solid #d8dbe2;}
   .settings-menu-arrow{font-size:17px;font-weight:700;color:#8b8f9c;flex-shrink:0;line-height:1;}
+  /* 設定メニューの小さな切り替え（整理するときメモを左半分に開く） */
+  .settings-switch{
+    display:flex;align-items:flex-start;gap:8px;cursor:pointer;user-select:none;
+    margin-top:14px;padding:10px 12px;border:1px solid #d8dbe2;border-radius:10px;background:#f7f8fa;
+  }
+  .settings-switch:hover{border-color:#2c5cc5;background:#f4f7ff;}
+  .settings-switch input{margin:2px 0 0;cursor:pointer;flex-shrink:0;}
+  .settings-switch-text{
+    font-size:13px;line-height:1.6;color:#1f2430;
+    line-break:strict;text-wrap:pretty;
+  }
+  .settings-switch-text span{display:inline-block;}  /* 文節の途中で改行させない */
   .settings-back{
     display:inline-flex;align-items:center;gap:4px;margin-bottom:14px;font-family:inherit;
     padding:7px 13px;border-radius:8px;border:1px solid #d0d3da;background:#fff;
@@ -621,6 +633,12 @@
     opacity:0;pointer-events:none;transition:opacity .25s ease, transform .25s ease;
     white-space:nowrap;z-index:70;max-width:90%;overflow:hidden;text-overflow:ellipsis;
   }
+  /* 長い案内は「…」で切らず折り返す（文節で切り、行頭に句読点を置かない） */
+  .toast.long{
+    white-space:normal;text-overflow:clip;text-align:left;
+    max-width:min(560px,90%);border-radius:14px;line-height:1.75;
+    line-break:strict;text-wrap:pretty;word-break:auto-phrase;
+  }
   .toast.show{opacity:1;transform:translateX(-50%) translateY(0);}
 
   .summary-mode{
@@ -927,6 +945,12 @@
         </div>
         <div class="settings-menu-card-desc">なくてもアプリは使えます</div>
       </button>
+
+      <!-- 「整理する」でメモ（PCスマホ連動メモ）を左半分に開くかどうか。初期値はオン -->
+      <label class="settings-switch">
+        <input type="checkbox" id="openMemoToggle" checked>
+        <span class="settings-switch-text"><span>整理するとき、</span><span>メモを</span><span>左半分に</span><span>開く</span></span>
+      </label>
     </div>
 
     <div class="settings-page" id="settingsPageAnthropic">
@@ -1126,6 +1150,7 @@
   const toast = document.getElementById('toast');
   function showToast(msg, duration){
     toast.textContent = msg;
+    toast.classList.toggle('long', String(msg).length > 28);  // 長い案内は折り返す
     toast.classList.add('show');
     clearTimeout(showToast._t);
     showToast._t = setTimeout(()=>toast.classList.remove('show'), duration || 2400);
@@ -1330,6 +1355,54 @@
   document.querySelectorAll('[data-settings-back]').forEach(btn=>{
     btn.addEventListener('click', ()=>{ updateSettingsMenuState(); showSettingsPage('menu'); });
   });
+  // ---------- 「整理する」でメモ（PCスマホ連動メモ）を左半分に開く ----------
+  const MEMO_URL = 'https://crossmemo.web.app/';
+  const MEMO_WIN_NAME = 'crossmemo';          // 名前つきウィンドウ。何度押してもメモは増えない
+  const OPEN_MEMO_KEY = 'stOpenMemoOnOrganize';
+  const MEMO_TOAST_MS = 8000;
+  // 「Win + →」は、途中で改行されないよう、空白をノーブレークスペースにする
+  const MEMO_OPENED_MSG = 'メモを左半分に開きました。スクショトリマーの画面をクリックしてから、Win + → を押すと、右半分に寄せられます';
+  const MEMO_BLOCKED_MSG = 'メモのウィンドウが、ブロックされました。アドレスバーの右にある、ポップアップのマークから『許可』を選んで、もう一度『整理する』を押してください';
+  const openMemoToggle = document.getElementById('openMemoToggle');
+  function getOpenMemoOnOrganize(){ return localStorage.getItem(OPEN_MEMO_KEY) !== '0'; }  // 未保存＝オン
+  openMemoToggle.checked = getOpenMemoOnOrganize();
+  openMemoToggle.addEventListener('change', ()=>{
+    localStorage.setItem(OPEN_MEMO_KEY, openMemoToggle.checked ? '1' : '0');
+  });
+
+  let memoWin = null;
+  // 「整理する」のクリックの直後に、同期的に呼ぶこと
+  //（時間のかかる処理のあとに呼ぶと、ポップアップがブロックされる）
+  function openMemoHalf(){
+    if(!getOpenMemoOnOrganize()) return;
+    if(memoWin && !memoWin.closed){          // すでに開いていれば、開き直さず前に出す
+      try{ memoWin.focus(); }catch(_){}
+      showToast(MEMO_OPENED_MSG, MEMO_TOAST_MS);
+      return;
+    }
+    // スクショトリマーのウィンドウがあるモニターの作業領域（screen は今いるモニターを返す）
+    const s = window.screen || {};
+    const left = Math.round(typeof s.availLeft === 'number' ? s.availLeft : 0);
+    const top  = Math.round(typeof s.availTop  === 'number' ? s.availTop  : 0);
+    const availW = Math.round(s.availWidth  || s.width  || 1280);
+    const availH = Math.round(s.availHeight || s.height || 800);
+    const width = Math.round(availW / 2);
+    const feats = 'popup=yes,left='+left+',top='+top+',width='+width+',height='+availH;
+    let win = null;
+    try{ win = window.open(MEMO_URL, MEMO_WIN_NAME, feats); }catch(_){ win = null; }
+    if(!win){
+      showToast(MEMO_BLOCKED_MSG, MEMO_TOAST_MS);
+      return;                                 // 整理の処理は止めない（呼び出し側で続行）
+    }
+    memoWin = win;
+    // ブラウザの枠の分だけ、ぴったり半分にならないことがあるので、できる範囲で寄せ直す
+    // （別ドメインのウィンドウなので、失敗することがある。そのときは開いたままにする）
+    try{ win.moveTo(left, top); }catch(_){}
+    try{ win.resizeTo(width, availH); }catch(_){}
+    try{ win.focus(); }catch(_){}
+    showToast(MEMO_OPENED_MSG, MEMO_TOAST_MS);
+  }
+
   // 「トップ部に戻る」：スクロールしているのはモーダルではなく settingsOverlay。設定は閉じない
   document.querySelectorAll('[data-scroll-top]').forEach(btn=>{
     btn.addEventListener('click', ()=>{
@@ -2533,6 +2606,7 @@
   }
 
   organizeBtn.addEventListener('click', ()=>{
+    openMemoHalf();            // クリックの直後に同期的に（あとに置くとポップアップがブロックされる）
     cropImg.src = shots[0].dataUrl;
     cropImg.onload = ()=> requestAnimationFrame(layoutRectFromRel);
     showView('organize');
