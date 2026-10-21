@@ -181,14 +181,39 @@
     display:flex;align-items:center;justify-content:center;padding:0;flex-shrink:0;
   }
   .settings-modal-close:hover{color:#1f2430;}
-  .settings-intro{
-    background:#eef0f4;border:1px solid #d8dbe2;border-radius:10px;
-    padding:12px 14px;margin-bottom:18px;
+  /* 設定は「メニュー」と項目ごとの画面に分かれ、同時に1つだけ表示する */
+  .settings-page{display:none;}
+  .settings-page.show{display:block;}
+  .settings-menu-note{
+    font-size:11.5px;line-height:1.7;color:#8b8f9c;margin-bottom:14px;
+    line-break:strict;text-wrap:pretty;
   }
-  .settings-intro-title{font-size:13px;font-weight:700;color:#1f2430;margin-bottom:8px;}
-  .settings-intro-sub{font-size:11.5px;color:#8b8f9c;margin-bottom:8px;}
-  .settings-intro-row{font-size:12px;line-height:1.7;color:#3a3f50;display:flex;align-items:flex-start;gap:6px;margin-bottom:2px;}
-  .settings-intro-dot{width:8px;height:8px;border-radius:50%;flex-shrink:0;margin-top:5px;}
+  .settings-menu-note span{display:inline-block;}  /* 文節の途中で改行させない */
+  .settings-menu-card{
+    display:block;width:100%;text-align:left;font-family:inherit;cursor:pointer;
+    background:#fff;border:1px solid #d0d3da;border-radius:12px;
+    padding:15px 16px;margin-bottom:12px;
+  }
+  .settings-menu-card:last-child{margin-bottom:0;}
+  .settings-menu-card:hover{border-color:#2c5cc5;background:#f4f7ff;}
+  .settings-menu-card-head{display:flex;align-items:center;gap:8px;flex-wrap:wrap;margin-bottom:6px;}
+  .settings-menu-card-title{font-size:15px;font-weight:700;color:#1f2430;line-height:1.5;}
+  .settings-menu-card-desc{
+    font-size:12.5px;line-height:1.7;color:#6b7080;
+    line-break:strict;text-wrap:pretty;
+  }
+  .settings-menu-state{
+    margin-left:auto;font-size:11px;font-weight:700;padding:3px 8px;border-radius:999px;white-space:nowrap;
+  }
+  .settings-menu-state.on{background:rgba(46,125,50,.1);color:#2e7d32;border:1px solid rgba(46,125,50,.3);}
+  .settings-menu-state.off{background:#eef0f4;color:#8b8f9c;border:1px solid #d8dbe2;}
+  .settings-menu-arrow{font-size:17px;font-weight:700;color:#8b8f9c;flex-shrink:0;line-height:1;}
+  .settings-back{
+    display:inline-flex;align-items:center;gap:4px;margin-bottom:14px;font-family:inherit;
+    padding:7px 13px;border-radius:8px;border:1px solid #d0d3da;background:#fff;
+    color:#3a3f50;font-size:12.5px;font-weight:700;cursor:pointer;white-space:nowrap;
+  }
+  .settings-back:hover{background:#eef0f4;color:#1f2430;}
   .settings-section{margin-bottom:20px;}
   .settings-section:last-child{margin-bottom:0;}
   .settings-section-head{display:flex;align-items:center;gap:8px;flex-wrap:wrap;margin-bottom:8px;}
@@ -257,22 +282,12 @@
   .clear-key{background:#fff;color:#6b7080;border:1px solid #d0d3da !important;}
   .test-key{background:#eef3ff;color:#2c5cc5;border:1px solid #c5d4f5 !important;}
   .test-key:disabled{opacity:.5;cursor:default;}
-  .settings-sep{border:none;border-top:1px solid #e0e2e8;margin:16px 0;}
-  /* 困ったとき（折りたたみ項目。項目を増やすときは details.trouble-item を並べる） */
-  .trouble-item{background:#fff;border:1px solid #d0d3da;border-radius:10px;margin-bottom:8px;}
-  .trouble-item > summary{
-    cursor:pointer;padding:12px 14px;font-size:14.5px;font-weight:800;color:#1f2430;line-height:1.5;
-    line-break:strict;text-wrap:balance;
-  }
-  .trouble-item > summary:hover{color:#2c5cc5;}
-  .trouble-body{padding:0 12px 12px;}
-  /* 案内カード（設定の「困ったとき」と専用モーダルで共通。中身は <template id="helpCaptionTpl"> から複製） */
+  /* 案内カード（字幕の枠の専用モーダル。中身は <template id="helpCaptionTpl"> から複製） */
   .help-card{
     background:#fff6db;border:1px solid #f0c75e;border-left:5px solid #e8a317;border-radius:10px;
     padding:14px 16px;color:#1f2430;
   }
   .help-title{font-size:17px;font-weight:800;color:#1f2430;margin:0 0 8px;line-height:1.45;}
-  .trouble-item .help-title{display:none;}  /* 折りたたみ側は summary が見出し */
   .help-desc{font-size:13.5px;line-height:1.75;color:#1f2430;margin:0 0 10px;line-break:strict;text-wrap:pretty;}
   .help-step{display:flex;gap:8px;align-items:flex-start;font-size:13.5px;line-height:1.7;color:#1f2430;margin-bottom:6px;}
   .help-step-num{
@@ -866,161 +881,172 @@
       <button class="settings-modal-close" id="settingsClose" title="閉じる">&times;</button>
     </div>
 
-    <div class="settings-intro">
-      <div class="settings-intro-title">このアプリで使う「2つの鍵」について</div>
-      <div class="settings-intro-sub">キーの変更・削除など、あとから見直すときもこの画面をお使いください</div>
-      <div class="settings-intro-row"><span class="settings-intro-dot" style="background:#ff8a65;"></span><span>&nbsp;<b>Anthropic APIキー</b>&nbsp;…&nbsp;字幕の要約に使います。要約機能を使うなら必要です。<b>少額の料金</b>がかかります。</span></div>
-      <div class="settings-intro-row"><span class="settings-intro-dot" style="background:#64b5f6;"></span><span>&nbsp;<b>YouTube Data API v3 キー</b>&nbsp;…&nbsp;チャンネルアイコンの表示に使います。<b>任意</b>（なくてもアプリは使えます）。<b>無料</b>です。</span></div>
-      <div class="settings-intro-row" style="color:#8b8f9c;margin-top:4px;"><span>どちらも、入力した鍵はこのブラウザの中だけに保存されます。</span></div>
+    <!-- 設定メニュー（⚙ を押すと、まずここが開く。どちらか1つだけでもよい） -->
+    <div class="settings-page show" id="settingsMenu">
+      <!-- 文節ごとに span で区切り、言葉の途中で改行されないようにする -->
+      <div class="settings-menu-note"><span>キーの変更・削除など、</span><span>あとから</span><span>見直すときも</span><span>この画面を</span><span>お使いください</span></div>
+
+      <button type="button" class="settings-menu-card" data-settings-page="anthropic">
+        <div class="settings-menu-card-head">
+          <span class="settings-menu-card-title">要約の設定</span>
+          <span class="settings-menu-state off" id="menuStateAnthropic">未設定</span>
+          <span class="settings-menu-arrow">&rsaquo;</span>
+        </div>
+        <div class="settings-menu-card-desc">字幕の要約を使うときだけ必要です</div>
+      </button>
+
+      <button type="button" class="settings-menu-card" data-settings-page="youtube">
+        <div class="settings-menu-card-head">
+          <span class="settings-menu-card-title">チャンネルアイコンの設定</span>
+          <span class="settings-menu-state off" id="menuStateYoutube">未設定</span>
+          <span class="settings-menu-arrow">&rsaquo;</span>
+        </div>
+        <div class="settings-menu-card-desc">なくてもアプリは使えます</div>
+      </button>
     </div>
 
-    <div class="settings-section">
-      <div class="settings-section-head">
-        <h3>Anthropic APIキー</h3>
-        <span class="settings-badge badge-required">要約機能に必須・有料</span>
-      </div>
-      <div class="settings-desc">
-        字幕要約機能では、Anthropic社のAI「Claude（クロード）」が字幕テキストを読み取り、要点をまとめます。いわばClaudeはこのアプリの要約係です。<br><br>
-        Claudeに作業をお願いするには「APIキー」が必要です。APIキーとは、Claudeを使うための会員証のようなもので、あなた専用の長い文字列です。以下の手順で取得して、下の入力欄に貼り付けてください。
-      </div>
+    <div class="settings-page" id="settingsPageAnthropic">
+      <button type="button" class="settings-back" data-settings-back>&larr; 戻る</button>
 
-      <div class="settings-desc" style="background:#eef0f4;border-radius:8px;padding:10px 12px;">
-        💰 <b>料金の目安</b>（字幕要約1回ごと。日本語を安全側（1文字＝1.5トークン）で見積もり、1ドル＝150円として計算した概算です。実際のレートや文章量により変わります）<br>
-        ・短い範囲（5〜10分程度の字幕）を要約：1回あたり<b>1〜2円程度</b><br>
-        ・一度に要約できる最大の長さ（50,000文字）を要約：1回あたり<b>最大でも13円程度</b><br>
-        ・「項目別（解説）」は出力が長いため、1回あたりの料金が要点まとめより少し高くなります（短い範囲で<b>3〜5円程度</b>、最大の長さ（15,000文字）で<b>最大でも13円程度</b>）<br>
-        料金はこのアプリの開発者にではなく、Anthropic社に直接支払う形になります。
-      </div>
+      <div class="settings-section">
+        <div class="settings-section-head">
+          <h3>Anthropic APIキー</h3>
+          <span class="settings-badge badge-required">要約機能に必須・有料</span>
+        </div>
+        <div class="settings-desc">
+          字幕要約機能では、Anthropic社のAI「Claude（クロード）」が字幕テキストを読み取り、要点をまとめます。いわばClaudeはこのアプリの要約係です。<br><br>
+          Claudeに作業をお願いするには「APIキー」が必要です。APIキーとは、Claudeを使うための会員証のようなもので、あなた専用の長い文字列です。以下の手順で取得して、下の入力欄に貼り付けてください。
+        </div>
 
-      <div class="settings-steps">
-        <div class="settings-steps-title">① 事前準備：利用残高（クレジット）の購入</div>
-        <div class="settings-step"><span class="settings-step-num">・</span><span>Anthropicの支払いは「前払い」です。APIキーを作る前後どちらでもよいので、利用のための残高（クレジット）を購入しておく必要があります</span></div>
-        <div class="settings-step"><span class="settings-step-num">・</span><span>コンソール画面の「Billing（請求）」ページで「クレジットを購入」を押し、購入する金額（米ドル）を入力します。初回は<b>5ドル程度から</b>購入できます（金額の目安は変更されることがあります）</span></div>
-        <div class="settings-step"><span class="settings-step-num">・</span><span>支払いにはクレジットカードまたはデビットカードが必要です（PayPalや電子マネーは使えません）</span></div>
-        <div class="settings-step"><span class="settings-step-num">・</span><span>（任意）使いすぎが心配な場合は、「Organization settings」→「Billing」→「Spend limits」で、1か月に使える上限金額を自分で設定できます</span></div>
-      </div>
+        <div class="settings-desc" style="background:#eef0f4;border-radius:8px;padding:10px 12px;">
+          💰 <b>料金の目安</b>（字幕要約1回ごと。日本語を安全側（1文字＝1.5トークン）で見積もり、1ドル＝150円として計算した概算です。実際のレートや文章量により変わります）<br>
+          ・短い範囲（5〜10分程度の字幕）を要約：1回あたり<b>1〜2円程度</b><br>
+          ・一度に要約できる最大の長さ（50,000文字）を要約：1回あたり<b>最大でも13円程度</b><br>
+          ・「項目別（解説）」は出力が長いため、1回あたりの料金が要点まとめより少し高くなります（短い範囲で<b>3〜5円程度</b>、最大の長さ（15,000文字）で<b>最大でも13円程度</b>）<br>
+          料金はこのアプリの開発者にではなく、Anthropic社に直接支払う形になります。
+        </div>
 
-      <div class="settings-steps">
-        <div class="settings-steps-title">② APIキーの取得手順</div>
-        <div class="settings-step"><span class="settings-step-num">1.</span><span>下のアドレスをブラウザで開きます（APIキーの一覧ページに直接移動します）：</span></div>
-        <a class="settings-step-link" href="https://platform.claude.com/settings/keys" target="_blank" rel="noopener">https://platform.claude.com/settings/keys</a>
-        <div class="settings-step"><span class="settings-step-num">2.</span><span>アカウントを作ってログインします（Googleアカウントでもログインできます）</span></div>
-        <div class="settings-step"><span class="settings-step-num">3.</span><span>画面に表示される「Create key」ボタンを押します</span></div>
-        <div class="settings-step"><span class="settings-step-num">4.</span><span>名前を入力します（あとで自分が分かればどんな名前でもOK）。有効期限（Expiration）や利用者（Linked account）の欄は、そのままで大丈夫です。入力できたら、もう一度「Create Key」を押します</span></div>
-        <div class="settings-step"><span class="settings-step-num">5.</span><span>表示された文字列（sk-ant-... で始まる長い文字列）をコピーします</span></div>
-        <div class="settings-step"><span class="settings-step-num">6.</span><span>コピーした文字列を下の入力欄に貼り付けて「保存」を押します。貼り付けたら、1で開いたページは閉じてOKです</span></div>
-      </div>
+        <div class="settings-steps">
+          <div class="settings-steps-title">① 事前準備：利用残高（クレジット）の購入</div>
+          <div class="settings-step"><span class="settings-step-num">・</span><span>Anthropicの支払いは「前払い」です。APIキーを作る前後どちらでもよいので、利用のための残高（クレジット）を購入しておく必要があります</span></div>
+          <div class="settings-step"><span class="settings-step-num">・</span><span>コンソール画面の「Billing（請求）」ページで「クレジットを購入」を押し、購入する金額（米ドル）を入力します。初回は<b>5ドル程度から</b>購入できます（金額の目安は変更されることがあります）</span></div>
+          <div class="settings-step"><span class="settings-step-num">・</span><span>支払いにはクレジットカードまたはデビットカードが必要です（PayPalや電子マネーは使えません）</span></div>
+          <div class="settings-step"><span class="settings-step-num">・</span><span>（任意）使いすぎが心配な場合は、「Organization settings」→「Billing」→「Spend limits」で、1か月に使える上限金額を自分で設定できます</span></div>
+        </div>
 
-      <div class="settings-warn">⚠ 鍵の文字列は作成した直後の1回しか表示されません。表示されたら、すぐにコピーしてください。画面を閉じると二度と見られないのでご注意ください。また、この鍵は他人に教えないでください（他人があなたの利用残高を使えてしまいます）。</div>
+        <div class="settings-steps">
+          <div class="settings-steps-title">② APIキーの取得手順</div>
+          <div class="settings-step"><span class="settings-step-num">1.</span><span>下のアドレスをブラウザで開きます（APIキーの一覧ページに直接移動します）：</span></div>
+          <a class="settings-step-link" href="https://platform.claude.com/settings/keys" target="_blank" rel="noopener">https://platform.claude.com/settings/keys</a>
+          <div class="settings-step"><span class="settings-step-num">2.</span><span>アカウントを作ってログインします（Googleアカウントでもログインできます）</span></div>
+          <div class="settings-step"><span class="settings-step-num">3.</span><span>画面に表示される「Create key」ボタンを押します</span></div>
+          <div class="settings-step"><span class="settings-step-num">4.</span><span>名前を入力します（あとで自分が分かればどんな名前でもOK）。有効期限（Expiration）や利用者（Linked account）の欄は、そのままで大丈夫です。入力できたら、もう一度「Create Key」を押します</span></div>
+          <div class="settings-step"><span class="settings-step-num">5.</span><span>表示された文字列（sk-ant-... で始まる長い文字列）をコピーします</span></div>
+          <div class="settings-step"><span class="settings-step-num">6.</span><span>コピーした文字列を下の入力欄に貼り付けて「保存」を押します。貼り付けたら、1で開いたページは閉じてOKです</span></div>
+        </div>
 
-      <div class="settings-key-row">
-        <span class="settings-key-label">APIキー：</span>
-        <input id="anthropicKeyInput" class="settings-key-input" type="password" placeholder="sk-ant-..." autocomplete="off" spellcheck="false">
-        <label class="settings-show-toggle"><input type="checkbox" id="anthropicKeyShow">表示</label>
-      </div>
+        <div class="settings-warn">⚠ 鍵の文字列は作成した直後の1回しか表示されません。表示されたら、すぐにコピーしてください。画面を閉じると二度と見られないのでご注意ください。また、この鍵は他人に教えないでください（他人があなたの利用残高を使えてしまいます）。</div>
 
-      <div class="settings-safety">🔒 入力したAPIキーは、このブラウザの中だけに保存されます。外部に送信されることはありません（要約を生成するときだけ、Anthropic社のサーバーに安全に送信されます）。</div>
+        <div class="settings-key-row">
+          <span class="settings-key-label">APIキー：</span>
+          <input id="anthropicKeyInput" class="settings-key-input" type="password" placeholder="sk-ant-..." autocomplete="off" spellcheck="false">
+          <label class="settings-show-toggle"><input type="checkbox" id="anthropicKeyShow">表示</label>
+        </div>
 
-      <div class="settings-msg" id="anthropicMsg"></div>
+        <div class="settings-safety">🔒 入力したAPIキーは、このブラウザの中だけに保存されます。外部に送信されることはありません（要約を生成するときだけ、Anthropic社のサーバーに安全に送信されます）。</div>
 
-      <div class="settings-actions">
-        <button class="save-key" id="saveAnthropicKey">保存</button>
-        <button class="test-key" id="testAnthropicKey">接続テスト</button>
-        <button class="clear-key" id="clearAnthropicKey">クリア</button>
-      </div>
-    </div>
+        <div class="settings-msg" id="anthropicMsg"></div>
 
-    <hr class="settings-sep">
-
-    <div class="settings-section">
-      <div class="settings-section-head">
-        <h3>YouTube Data API v3 キー</h3>
-        <span class="settings-badge badge-optional">任意・無料</span>
-      </div>
-      <div class="settings-desc">
-        動画一覧に表示する、チャンネルの丸いアイコン画像を取得するために使います。このアプリ自体の動作には必要ありません。入力しなくても、動画の読み込みやキャプチャ、字幕要約はすべて問題なく使えます。<br><br>
-        こちらも「APIキー」という、あなた専用の文字列を使います。キーの取得も利用も<b>無料</b>です（Googleの仕様で、プロジェクト作成時にカード登録を求められることがありますが、料金は発生しません）。<br><br>
-        チャンネルアイコンが表示されないときは、ここでキーを確認してください。
-      </div>
-
-      <div class="settings-desc" style="background:#eef0f4;border-radius:8px;padding:10px 12px;">
-        💰 <b>料金について</b><br>
-        完全に無料です。1日に10,000回分の「無料のひきかえ券（割り当て）」が用意されており、チャンネルアイコンの取得は1回につき券1枚しか使いません。使い切ることはまずありませんが、万一使い切った場合も自動で課金されることはなく、その日は取得が一時的に止まるだけです（翌日またアメリカ時間の深夜に回復します）。<br>
-        ※ 無料枠の範囲内であれば、カードを登録しても課金されません。
-      </div>
-
-      <div class="settings-steps">
-        <div class="settings-steps-title">取得手順（全部で7ステップ。いちばん大事なのは手順4の「有効にする」です）</div>
-        <div class="settings-step"><span class="settings-step-num">1.</span><span>下のアドレスをブラウザで開きます：</span></div>
-        <a class="settings-step-link" href="https://console.cloud.google.com/" target="_blank" rel="noopener">https://console.cloud.google.com/</a>
-        <div class="settings-step"><span class="settings-step-num">2.</span><span>Googleアカウントでログインします（普段お使いのGoogleアカウントでかまいません）</span></div>
-        <div class="settings-step"><span class="settings-step-num">3.</span><span>画面左上、「Google Cloud」のロゴの右にある丸いボタンを押します（すでにプロジェクトがある場合はそのプロジェクト名、ない場合は「プロジェクトを選択」と表示されています）</span></div>
-        <div class="settings-step"><span class="settings-step-num">　</span><span>開いた小さなウィンドウの右上にある「新しいプロジェクト」を押します</span></div>
-        <div class="settings-step"><span class="settings-step-num">　</span><span>プロジェクト名は何でもかまいません。<br>「請求先アカウント」の欄が赤くなっている場合は、<br>▼を押して一覧から選びます</span></div>
-        <div class="settings-step"><span class="settings-step-num">　</span><span>「作成」を押します。<br>作成には数十秒かかることがあります。<br>完了したら、同じボタンをもう一度押して、<br>作ったプロジェクトが選ばれていることを確認します</span></div>
-        <div class="settings-step"><span class="settings-step-num">　</span><span style="color:#8b8f9c;">※ すでにGoogle Cloudのプロジェクトをお持ちの場合は、新しく作らず、そのプロジェクトを使っても大丈夫です</span></div>
-      </div>
-
-      <div class="settings-warn">⚠ 「請求先アカウントは必須です」と赤く表示されたとき<br>
-        ・一覧に請求先アカウントが出ている場合は、<br>
-        それを選んで「作成」を押してください<br>
-        ・一覧が空の場合は、Googleが本人確認のために、<br>
-        支払い方法（クレジットカードなど）の登録を求めています。<br>
-        YouTube Data APIの利用自体は無料枠の範囲で課金されません。<br>
-        登録だけで料金が発生することもありません。<br>
-        ・カードの登録に抵抗がある場合は、このキーは任意なので、<br>
-        入力せずに進めても、動画の読み込みやキャプチャ、<br>
-        字幕要約は問題なく使えます<br>
-        （チャンネルのアイコンだけ表示されません）<br>
-        ・「組織なし」「親リソース 組織なし」のままで大丈夫です。<br>
-        変更しないでください
-      </div>
-
-      <div class="settings-highlight">
-        <div class="settings-highlight-title">④ 「YouTube Data API v3」を有効にします（ここが一番大事です）</div>
-        <div class="settings-step"><span class="settings-step-num">・</span><span>左上のメニュー（≡）から「APIとサービス」→「ライブラリ」を開きます</span></div>
-        <div class="settings-step"><span class="settings-step-num">・</span><span>検索欄に「YouTube Data API v3」と入力し、表示された項目を選びます</span></div>
-        <div class="settings-step"><span class="settings-step-num">・</span><span>青い「有効にする」ボタンを押します</span></div>
-        <div class="settings-step"><span class="settings-step-num">・</span><span>少し待つと、ボタンが「管理」に変わります。これが「APIが有効になった」というしるしです。この表示に変わったことを確かめてから、次の手順に進んでください</span></div>
-        <div class="settings-step"><span class="settings-step-num">⚠</span><span><b>ここを飛ばすと</b>、次のキー作成の手順で「APIの制限の選択」のプルダウンが空のままになり、先に進めなくなります</span></div>
-      </div>
-
-      <div class="settings-steps">
-        <div class="settings-step"><span class="settings-step-num">5.</span><span>左のメニューから「APIとサービス」→「認証情報」を開き、上部の「認証情報を作成」ボタンを押して「API キー」を選びます</span></div>
-        <div class="settings-step"><span class="settings-step-num">　</span><span style="color:#8b8f9c;">※ 入力の途中で画面が消えてしまっても、やり直しは問題ありません。もう一度同じ手順をたどればOKです</span></div>
-        <div class="settings-step"><span class="settings-step-num">6.</span><span>表示された文字列（AIzaで始まる文字列）をコピーして、下の入力欄に貼り付けます</span></div>
-        <div class="settings-step"><span class="settings-step-num">7.</span><span>（推奨・安全のため）作成したキーの「キーを制限」を押します。「APIの制限」は<b>必須の項目</b>（*印が付いています）なので、「キーを制限」を選び、プルダウンを押して「YouTube Data API v3」にチェックを入れ、「OK」を押してから保存します。これで、万一この鍵が漏れても他のサービスには使われません</span></div>
-        <div class="settings-step"><span class="settings-step-num">　</span><span style="color:#8b8f9c;">※ プルダウンの一覧に「YouTube Data API v3」が出てこないときは、手順4がまだ済んでいません。画面に出ている「APIライブラリ」のリンクから手順4に戻ってください</span></div>
-      </div>
-
-      <div class="settings-warn">⚠ このキーは無料枠のみなので高額請求の心配はありませんが、念のため他人には教えないでください。手順7の制限をかけておくと、より安全です。</div>
-
-      <div class="settings-key-row">
-        <span class="settings-key-label">APIキー：</span>
-        <input id="apiKeyInput" class="settings-key-input" type="password" placeholder="AIza..." autocomplete="off" spellcheck="false">
-        <label class="settings-show-toggle"><input type="checkbox" id="apiKeyShow">表示</label>
-      </div>
-
-      <div class="settings-safety">🔒 入力したAPIキーは、このブラウザの中だけに保存されます。外部に送信されることはありません（チャンネルアイコンを取得するときだけ、Google社のサーバーに安全に送信されます）。</div>
-
-      <div class="settings-msg" id="youtubeMsg"></div>
-
-      <div class="settings-actions">
-        <button class="save-key" id="saveApiKey">保存</button>
-        <button class="test-key" id="testApiKey">接続テスト</button>
-        <button class="clear-key" id="clearApiKey">クリア</button>
+        <div class="settings-actions">
+          <button class="save-key" id="saveAnthropicKey">保存</button>
+          <button class="test-key" id="testAnthropicKey">接続テスト</button>
+          <button class="clear-key" id="clearAnthropicKey">クリア</button>
+        </div>
       </div>
     </div>
 
-    <hr class="settings-sep">
+    <div class="settings-page" id="settingsPageYoutube">
+      <button type="button" class="settings-back" data-settings-back>&larr; 戻る</button>
 
-    <div class="settings-section">
-      <div class="settings-section-head"><h3>困ったとき</h3></div>
+      <div class="settings-section">
+        <div class="settings-section-head">
+          <h3>YouTube Data API v3 キー</h3>
+          <span class="settings-badge badge-optional">任意・無料</span>
+        </div>
+        <div class="settings-desc">
+          動画一覧に表示する、チャンネルの丸いアイコン画像を取得するために使います。このアプリ自体の動作には必要ありません。入力しなくても、動画の読み込みやキャプチャ、字幕要約はすべて問題なく使えます。<br><br>
+          こちらも「APIキー」という、あなた専用の文字列を使います。キーの取得も利用も<b>無料</b>です（Googleの仕様で、プロジェクト作成時にカード登録を求められることがありますが、料金は発生しません）。<br><br>
+          チャンネルアイコンが表示されないときは、ここでキーを確認してください。
+        </div>
 
-      <details class="trouble-item">
-        <summary>動画を再生すると、字幕の枠が出てじゃまなとき</summary>
-        <div class="trouble-body"><div data-help-card="caption"></div></div>
-      </details>
+        <div class="settings-desc" style="background:#eef0f4;border-radius:8px;padding:10px 12px;">
+          💰 <b>料金について</b><br>
+          完全に無料です。1日に10,000回分の「無料のひきかえ券（割り当て）」が用意されており、チャンネルアイコンの取得は1回につき券1枚しか使いません。使い切ることはまずありませんが、万一使い切った場合も自動で課金されることはなく、その日は取得が一時的に止まるだけです（翌日またアメリカ時間の深夜に回復します）。<br>
+          ※ 無料枠の範囲内であれば、カードを登録しても課金されません。
+        </div>
+
+        <div class="settings-steps">
+          <div class="settings-steps-title">取得手順（全部で7ステップ。いちばん大事なのは手順4の「有効にする」です）</div>
+          <div class="settings-step"><span class="settings-step-num">1.</span><span>下のアドレスをブラウザで開きます：</span></div>
+          <a class="settings-step-link" href="https://console.cloud.google.com/" target="_blank" rel="noopener">https://console.cloud.google.com/</a>
+          <div class="settings-step"><span class="settings-step-num">2.</span><span>Googleアカウントでログインします（普段お使いのGoogleアカウントでかまいません）</span></div>
+          <div class="settings-step"><span class="settings-step-num">3.</span><span>画面左上、「Google Cloud」のロゴの右にある丸いボタンを押します（すでにプロジェクトがある場合はそのプロジェクト名、ない場合は「プロジェクトを選択」と表示されています）</span></div>
+          <div class="settings-step"><span class="settings-step-num">　</span><span>開いた小さなウィンドウの右上にある「新しいプロジェクト」を押します</span></div>
+          <div class="settings-step"><span class="settings-step-num">　</span><span>プロジェクト名は何でもかまいません。<br>「請求先アカウント」の欄が赤くなっている場合は、<br>▼を押して一覧から選びます</span></div>
+          <div class="settings-step"><span class="settings-step-num">　</span><span>「作成」を押します。<br>作成には数十秒かかることがあります。<br>完了したら、同じボタンをもう一度押して、<br>作ったプロジェクトが選ばれていることを確認します</span></div>
+          <div class="settings-step"><span class="settings-step-num">　</span><span style="color:#8b8f9c;">※ すでにGoogle Cloudのプロジェクトをお持ちの場合は、新しく作らず、そのプロジェクトを使っても大丈夫です</span></div>
+        </div>
+
+        <div class="settings-warn">⚠ 「請求先アカウントは必須です」と赤く表示されたとき<br>
+          ・一覧に請求先アカウントが出ている場合は、<br>
+          それを選んで「作成」を押してください<br>
+          ・一覧が空の場合は、Googleが本人確認のために、<br>
+          支払い方法（クレジットカードなど）の登録を求めています。<br>
+          YouTube Data APIの利用自体は無料枠の範囲で課金されません。<br>
+          登録だけで料金が発生することもありません。<br>
+          ・カードの登録に抵抗がある場合は、このキーは任意なので、<br>
+          入力せずに進めても、動画の読み込みやキャプチャ、<br>
+          字幕要約は問題なく使えます<br>
+          （チャンネルのアイコンだけ表示されません）<br>
+          ・「組織なし」「親リソース 組織なし」のままで大丈夫です。<br>
+          変更しないでください
+        </div>
+
+        <div class="settings-highlight">
+          <div class="settings-highlight-title">④ 「YouTube Data API v3」を有効にします（ここが一番大事です）</div>
+          <div class="settings-step"><span class="settings-step-num">・</span><span>左上のメニュー（≡）から「APIとサービス」→「ライブラリ」を開きます</span></div>
+          <div class="settings-step"><span class="settings-step-num">・</span><span>検索欄に「YouTube Data API v3」と入力し、表示された項目を選びます</span></div>
+          <div class="settings-step"><span class="settings-step-num">・</span><span>青い「有効にする」ボタンを押します</span></div>
+          <div class="settings-step"><span class="settings-step-num">・</span><span>少し待つと、ボタンが「管理」に変わります。これが「APIが有効になった」というしるしです。この表示に変わったことを確かめてから、次の手順に進んでください</span></div>
+          <div class="settings-step"><span class="settings-step-num">⚠</span><span><b>ここを飛ばすと</b>、次のキー作成の手順で「APIの制限の選択」のプルダウンが空のままになり、先に進めなくなります</span></div>
+        </div>
+
+        <div class="settings-steps">
+          <div class="settings-step"><span class="settings-step-num">5.</span><span>左のメニューから「APIとサービス」→「認証情報」を開き、上部の「認証情報を作成」ボタンを押して「API キー」を選びます</span></div>
+          <div class="settings-step"><span class="settings-step-num">　</span><span style="color:#8b8f9c;">※ 入力の途中で画面が消えてしまっても、やり直しは問題ありません。もう一度同じ手順をたどればOKです</span></div>
+          <div class="settings-step"><span class="settings-step-num">6.</span><span>表示された文字列（AIzaで始まる文字列）をコピーして、下の入力欄に貼り付けます</span></div>
+          <div class="settings-step"><span class="settings-step-num">7.</span><span>（推奨・安全のため）作成したキーの「キーを制限」を押します。「APIの制限」は<b>必須の項目</b>（*印が付いています）なので、「キーを制限」を選び、プルダウンを押して「YouTube Data API v3」にチェックを入れ、「OK」を押してから保存します。これで、万一この鍵が漏れても他のサービスには使われません</span></div>
+          <div class="settings-step"><span class="settings-step-num">　</span><span style="color:#8b8f9c;">※ プルダウンの一覧に「YouTube Data API v3」が出てこないときは、手順4がまだ済んでいません。画面に出ている「APIライブラリ」のリンクから手順4に戻ってください</span></div>
+        </div>
+
+        <div class="settings-warn">⚠ このキーは無料枠のみなので高額請求の心配はありませんが、念のため他人には教えないでください。手順7の制限をかけておくと、より安全です。</div>
+
+        <div class="settings-key-row">
+          <span class="settings-key-label">APIキー：</span>
+          <input id="apiKeyInput" class="settings-key-input" type="password" placeholder="AIza..." autocomplete="off" spellcheck="false">
+          <label class="settings-show-toggle"><input type="checkbox" id="apiKeyShow">表示</label>
+        </div>
+
+        <div class="settings-safety">🔒 入力したAPIキーは、このブラウザの中だけに保存されます。外部に送信されることはありません（チャンネルアイコンを取得するときだけ、Google社のサーバーに安全に送信されます）。</div>
+
+        <div class="settings-msg" id="youtubeMsg"></div>
+
+        <div class="settings-actions">
+          <button class="save-key" id="saveApiKey">保存</button>
+          <button class="test-key" id="testApiKey">接続テスト</button>
+          <button class="clear-key" id="clearApiKey">クリア</button>
+        </div>
+      </div>
     </div>
   </div>
 </div>
@@ -1235,7 +1261,25 @@
   const apiKeyShow = document.getElementById('apiKeyShow');
   const youtubeMsg = document.getElementById('youtubeMsg');
 
-  function openSettings(){
+  // 設定は「メニュー」と項目ごとの画面に分かれ、同時に1つだけ出す
+  const settingsPages = {
+    menu: document.getElementById('settingsMenu'),
+    anthropic: document.getElementById('settingsPageAnthropic'),
+    youtube: document.getElementById('settingsPageYoutube')
+  };
+  function showSettingsPage(name){
+    Object.keys(settingsPages).forEach(k=> settingsPages[k].classList.toggle('show', k === name));
+    settingsOverlay.scrollTop = 0;
+  }
+  function updateSettingsMenuState(){
+    [['menuStateAnthropic', !!getAnthropicKey()], ['menuStateYoutube', !!getApiKey()]].forEach(([id, isSet])=>{
+      const el = document.getElementById(id);
+      el.textContent = isSet ? '設定済み ✓' : '未設定';
+      el.className = 'settings-menu-state ' + (isSet ? 'on' : 'off');
+    });
+  }
+  // page を渡すと、メニューを経由せずその項目の画面を直接開く
+  function openSettings(page){
     apiKeyInput.value = getApiKey();
     anthropicKeyInput.value = getAnthropicKey();
     anthropicKeyShow.checked = false;
@@ -1246,14 +1290,22 @@
     apiKeyInput.type = 'password';
     youtubeMsg.textContent = '';
     youtubeMsg.className = 'settings-msg';
+    updateSettingsMenuState();
+    showSettingsPage(settingsPages[page] ? page : 'menu');
     settingsOverlay.classList.add('show');
   }
   function closeSettings(){
     settingsOverlay.classList.remove('show');
     if(typeof updateApiKeyStatus === 'function') updateApiKeyStatus();
   }
+  document.querySelectorAll('[data-settings-page]').forEach(btn=>{
+    btn.addEventListener('click', ()=> showSettingsPage(btn.dataset.settingsPage));
+  });
+  document.querySelectorAll('[data-settings-back]').forEach(btn=>{
+    btn.addEventListener('click', ()=>{ updateSettingsMenuState(); showSettingsPage('menu'); });
+  });
 
-  // 「困ったとき」の案内カード：1つのテンプレートから、設定の折りたたみと専用モーダルの両方に複製する
+  // 字幕の枠の案内カード：テンプレートから専用モーダルに複製する
   function bindCopyButtons(root){
     root.querySelectorAll('.copy-addr-btn').forEach(btn=>{
       const msg = btn.parentElement.nextElementSibling;
@@ -1272,11 +1324,9 @@
       });
     });
   }
-  document.querySelectorAll('[data-help-card]').forEach(slot=>{
-    const tpl = document.getElementById('helpCaptionTpl');  // 今は字幕の枠の案内のみ。増やすときは data-help-card の値で選ぶ
-    slot.appendChild(tpl.content.cloneNode(true));
-    bindCopyButtons(slot);
-  });
+  const captionHelpSlot = document.querySelector('[data-help-card="caption"]');
+  captionHelpSlot.appendChild(document.getElementById('helpCaptionTpl').content.cloneNode(true));
+  bindCopyButtons(captionHelpSlot);
 
   // 専用モーダル（案内バーの「手順を見る」から開く。設定のほかの部品は出さない）
   const captionHelpOverlay = document.getElementById('captionHelpOverlay');
@@ -1289,9 +1339,13 @@
     if(e.key === 'Escape' && captionHelpOverlay.classList.contains('show')) closeCaptionHelp();
   });
 
-  settingsBtn.addEventListener('click', openSettings);
+  settingsBtn.addEventListener('click', ()=> openSettings());
   document.getElementById('settingsClose').addEventListener('click', closeSettings);
   settingsOverlay.addEventListener('click', (e)=>{ if(e.target === settingsOverlay) closeSettings(); });
+  document.addEventListener('keydown', (e)=>{
+    // 項目の画面でも、メニューには戻らず設定ごと閉じる
+    if(e.key === 'Escape' && settingsOverlay.classList.contains('show')) closeSettings();
+  });
 
   anthropicKeyShow.addEventListener('change', ()=>{
     anthropicKeyInput.type = anthropicKeyShow.checked ? 'text' : 'password';
@@ -1755,7 +1809,7 @@
     }else{
       apiKeyStatusEl.innerHTML = '<span class="not-set">Anthropic APIキー：未設定</span> <span class="set-link" id="openSettingsLink">設定を開く</span>';
       const link = document.getElementById('openSettingsLink');
-      if(link) link.addEventListener('click', openSettings);
+      if(link) link.addEventListener('click', ()=> openSettings('anthropic'));
     }
   }
 
@@ -2736,7 +2790,7 @@
     }
     if(!getAnthropicKey()){
       showToast('Anthropic APIキーを設定してください', true);
-      openSettings();
+      openSettings('anthropic');  // メニューを経由せず、要約の設定を直接開く
       return;
     }
     if(!transcriptServerAvailable){
