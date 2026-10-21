@@ -60,6 +60,23 @@
     background:var(--accent);color:#1c0a05;font-weight:700;font-size:12.5px;cursor:pointer;white-space:nowrap;
   }
   .load-btn:hover{filter:brightness(1.06);}
+  /* クリップボードのYouTubeアドレスを貼って読み込むボタン（「読み込む」と区別がつく枠付き） */
+  .paste-load-btn{
+    display:flex;align-items:center;gap:5px;flex:0 0 auto;
+    padding:6px 12px;border-radius:8px;border:1px solid var(--hairline);
+    background:var(--panel-2);color:var(--text-hi);font-size:12.5px;font-weight:700;
+    cursor:pointer;white-space:nowrap;
+  }
+  .paste-load-btn:hover{border-color:var(--accent-2);}
+  /* 幅が狭いときは📋だけにして、入力欄の幅を確保する */
+  @media (max-width:1100px){
+    .paste-load-btn .plb-label{display:none;}
+    .paste-load-btn{padding:6px 9px;}
+  }
+  /* 📋だけでもヘッダーに入らない幅では出さない（ほかの部品をはみ出させない） */
+  @media (max-width:860px){
+    .paste-load-btn{display:none;}
+  }
   /* ローカル動画モード：読み込み中のファイル名表示＋コピーボタン */
   .local-filename{
     font-size:12.5px;color:var(--text-lo);white-space:nowrap;overflow:hidden;text-overflow:ellipsis;
@@ -689,6 +706,7 @@
   <div class="loadbar">
     <input id="videoInput" type="text" placeholder="YouTube URLまたはIDを貼り付け">
     <button id="loadBtn" class="load-btn">読み込む</button>
+    <button id="pasteLoadBtn" class="paste-load-btn" aria-label="貼って読み込む" title="クリップボードのYouTubeアドレスを貼って、読み込みます"><span aria-hidden="true">📋</span><span class="plb-label">貼って読み込む</span></button>
     <input type="file" accept="video/*" id="localFileInput" hidden>
     <button id="localFileBtn" class="load-btn" style="display:none;">ファイルを選択</button>
     <span class="local-filename" id="localFilename" style="display:none;" title=""></span>
@@ -1519,6 +1537,7 @@
   const youtubeOnlyEls = [
     document.getElementById('videoInput'),
     document.getElementById('loadBtn'),
+    document.getElementById('pasteLoadBtn'),
     document.getElementById('chanRow'),
     document.getElementById('shareStatus'),
     document.getElementById('summarizeBtn'),
@@ -1670,6 +1689,26 @@
   document.getElementById('loadBtn').addEventListener('click', loadVideo);
   document.getElementById('videoInput').addEventListener('keydown', (e)=>{
     if(e.key === 'Enter') loadVideo();
+  });
+
+  // 📋 貼って読み込む：クリップボードのYouTubeアドレスを、そのままアドレス欄に入れて読み込む
+  // クリップボードの中身は、アドレスでなかったときも画面やログに出さない
+  document.getElementById('pasteLoadBtn').addEventListener('click', async ()=>{
+    if(currentMode === 'local') return;
+    let text;
+    try{
+      text = await navigator.clipboard.readText();
+    }catch(e){
+      showToast('クリップボードを読む許可が必要です。アドレス欄に、Ctrl+V で貼って、「読み込む」を押してください（許可を聞かれるのは初回だけです）', 6000);
+      return;
+    }
+    text = (text || '').trim();
+    if(!text){ showToast('コピーされたものが、ありません。YouTubeでアドレスをコピーしてください', 5000); return; }
+    const id = extractVideoId(text);
+    if(!id){ showToast('YouTubeのアドレスが、コピーされていません', 4000); return; }
+    if(id === currentVideoId){ showToast('すでに読み込んでいます'); return; }
+    document.getElementById('videoInput').value = text;  // 読み込めた形のまま入れる
+    loadVideo();
   });
   function loadVideo(){
     const rawVal = document.getElementById('videoInput').value;
