@@ -640,6 +640,20 @@
     line-break:strict;text-wrap:pretty;word-break:auto-phrase;
   }
   .toast.show{opacity:1;transform:translateX(-50%) translateY(0);}
+  /* メモのウィンドウ（画面の左半分）に隠れないよう、右半分の上に出す案内 */
+  .toast.right-half{
+    left:auto;right:16px;bottom:auto;top:16px;
+    transform:translateY(-8px);max-width:min(416px,46vw);  /* 文節できれいに折り返す幅 */
+  }
+  .toast.right-half.show{transform:translateY(0);}
+  @media (max-width:699px){
+    /* 画面が狭いときは左右に分ける意味がないので、いつもの場所（下の中央）に戻す */
+    .toast.right-half{
+      left:50%;right:auto;top:auto;bottom:24px;
+      transform:translateX(-50%) translateY(8px);max-width:min(560px,90%);
+    }
+    .toast.right-half.show{transform:translateX(-50%) translateY(0);}
+  }
 
   .summary-mode{
     display:flex;gap:4px;width:100%;
@@ -1149,11 +1163,44 @@
   };
   const toast = document.getElementById('toast');
   function showToast(msg, duration){
+    clearStickyToast();                                       // 前の「操作があるまで消さない案内」を解除
     toast.textContent = msg;
     toast.classList.toggle('long', String(msg).length > 28);  // 長い案内は折り返す
+    toast.classList.remove('right-half');                     // 置き場所は、いつもの下の中央に戻す
     toast.classList.add('show');
     clearTimeout(showToast._t);
     showToast._t = setTimeout(()=>toast.classList.remove('show'), duration || 2400);
+  }
+
+  // 右半分に出し、スクショトリマーのウィンドウに操作があるまで消さない案内。
+  // （メモのウィンドウを開いた直後は、こちらの画面が見えにくいので、先に消えてしまわないようにする）
+  const STICKY_ARM_MS   = 1500;   // 押した直後の動きは「操作」と数えない
+  const STICKY_AFTER_MS = 5000;   // 操作のあと、これだけで消す
+  const STICKY_MAX_MS   = 60000;  // 操作がなくても、これで必ず消す
+  let stickyToastOff = null;
+  function clearStickyToast(){
+    if(stickyToastOff){ stickyToastOff(); stickyToastOff = null; }
+  }
+  function showStickyToast(msg){
+    showToast(msg, STICKY_MAX_MS);          // 中で clearStickyToast() が走る
+    toast.classList.add('right-half');
+    const events = ['pointerdown','mousemove','keydown','wheel','touchstart'];
+    let armed = false, done = false;
+    const onAct = ()=>{
+      if(!armed || done) return;
+      done = true;
+      clearTimeout(showToast._t);
+      showToast._t = setTimeout(()=>toast.classList.remove('show'), STICKY_AFTER_MS);
+      off();
+    };
+    const armTimer = setTimeout(()=>{ armed = true; }, STICKY_ARM_MS);
+    function off(){
+      clearTimeout(armTimer);
+      events.forEach(e=> window.removeEventListener(e, onAct, true));
+      stickyToastOff = null;
+    }
+    events.forEach(e=> window.addEventListener(e, onAct, true));
+    stickyToastOff = off;
   }
   function setStatus(msg, warn){
     if(msg) showToast(msg, warn ? 5000 : 3000);
@@ -1359,7 +1406,7 @@
   const MEMO_URL = 'https://crossmemo.web.app/';
   const MEMO_WIN_NAME = 'crossmemo';          // 名前つきウィンドウ。何度押してもメモは増えない
   const OPEN_MEMO_KEY = 'stOpenMemoOnOrganize';
-  const MEMO_TOAST_MS = 8000;
+  const MEMO_SNAP_WINDOW_MS = 120000;  // 「整理する」のあと、この間だけスナップを待ち受ける
   // 「Win + →」は、途中で改行されないよう、空白をノーブレークスペースにする
   const MEMO_OPENED_MSG = 'メモを左半分に開きました。スクショトリマーの画面をクリックしてから、Win + → を押すと、右半分に寄せられます';
   const MEMO_BLOCKED_MSG = 'メモのウィンドウが、ブロックされました。アドレスバーの右にある、ポップアップのマークから『許可』を選んで、もう一度『整理する』を押してください';
@@ -1377,7 +1424,8 @@
     if(!getOpenMemoOnOrganize()) return;
     if(memoWin && !memoWin.closed){          // すでに開いていれば、開き直さず前に出す
       try{ memoWin.focus(); }catch(_){}
-      showToast(MEMO_OPENED_MSG, MEMO_TOAST_MS);
+      armMemoSnapFocus();
+      showStickyToast(MEMO_OPENED_MSG);
       return;
     }
     // スクショトリマーのウィンドウがあるモニターの作業領域（screen は今いるモニターを返す）
@@ -1391,7 +1439,7 @@
     let win = null;
     try{ win = window.open(MEMO_URL, MEMO_WIN_NAME, feats); }catch(_){ win = null; }
     if(!win){
-      showToast(MEMO_BLOCKED_MSG, MEMO_TOAST_MS);
+      showStickyToast(MEMO_BLOCKED_MSG);
       return;                                 // 整理の処理は止めない（呼び出し側で続行）
     }
     memoWin = win;
@@ -1400,8 +1448,29 @@
     try{ win.moveTo(left, top); }catch(_){}
     try{ win.resizeTo(width, availH); }catch(_){}
     try{ win.focus(); }catch(_){}
-    showToast(MEMO_OPENED_MSG, MEMO_TOAST_MS);
+    armMemoSnapFocus();
+    showStickyToast(MEMO_OPENED_MSG);
   }
+
+  // Win + → でスクショトリマーが右半分になったとき、Windowsの「スナップ アシスト」より先に
+  // メモのウィンドウを前に出す。ブラウザの制限で効かないことがあるが、そのときも何もしない
+  let memoSnapUntil = 0;      // この時刻まで待ち受ける
+  let memoSnapDone = false;   // 1回だけ
+  function armMemoSnapFocus(){
+    memoSnapUntil = Date.now() + MEMO_SNAP_WINDOW_MS;
+    memoSnapDone = false;
+  }
+  window.addEventListener('resize', ()=>{
+    if(memoSnapDone || Date.now() > memoSnapUntil) return;
+    if(!memoWin) return;
+    try{ if(memoWin.closed) return; }catch(_){ return; }   // すでに閉じられていたら何もしない
+    const availW = (window.screen && (window.screen.availWidth || window.screen.width)) || 0;
+    if(!availW) return;
+    const ratio = window.outerWidth / availW;
+    if(ratio < 0.45 || ratio > 0.55) return;               // 半分程度になったときだけ
+    memoSnapDone = true;
+    try{ memoWin.focus(); }catch(_){}
+  });
 
   // 「トップ部に戻る」：スクロールしているのはモーダルではなく settingsOverlay。設定は閉じない
   document.querySelectorAll('[data-scroll-top]').forEach(btn=>{
@@ -2607,6 +2676,8 @@
 
   organizeBtn.addEventListener('click', ()=>{
     openMemoHalf();            // クリックの直後に同期的に（あとに置くとポップアップがブロックされる）
+    // 再生中なら一時停止する（止まっているときは何もしない）
+    try{ const ap = getActivePlayer(); if(ap.isPlaying()) ap.pause(); }catch(e){}
     cropImg.src = shots[0].dataUrl;
     cropImg.onload = ()=> requestAnimationFrame(layoutRectFromRel);
     showView('organize');
