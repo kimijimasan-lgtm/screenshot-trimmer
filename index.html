@@ -31,11 +31,12 @@
   /* ---------- header ---------- */
   header{
     flex:0 0 auto;display:flex;align-items:center;gap:14px;
-    padding:8px 18px;border-bottom:1px solid var(--hairline);background:var(--panel);
+    padding:8px 18px 8px 12px;border-bottom:1px solid var(--hairline);background:var(--panel);
   }
-  .brand{display:flex;align-items:baseline;gap:8px;white-space:nowrap;}
-  .brand h1{font-size:28px;line-height:1;margin:0;font-weight:800;letter-spacing:-.01em;}
-  .brand .ver{font-size:11px;color:var(--accent);letter-spacing:.12em;text-transform:uppercase;font-weight:700;}
+  /* アプリ名とバージョンは2段（横幅を使わず、ヘッダーの他の部品に余裕を作る） */
+  .brand{display:flex;flex-direction:column;align-items:flex-start;gap:0;white-space:nowrap;flex:0 0 auto;}
+  .brand h1{font-size:18px;line-height:1.2;margin:0;font-weight:800;letter-spacing:-.01em;}
+  .brand .ver{font-size:10px;line-height:1.1;color:var(--text-lo);letter-spacing:.1em;text-transform:uppercase;font-weight:700;}
   /* モード切替ピル（YouTube / ローカル） */
   .mode-toggle{
     display:flex;gap:2px;background:var(--panel-2);border:1px solid var(--hairline);
@@ -68,13 +69,13 @@
     cursor:pointer;white-space:nowrap;
   }
   .paste-load-btn:hover{border-color:var(--accent-2);}
-  /* 幅が狭いときは📋だけにして、入力欄の幅を確保する */
-  @media (max-width:1100px){
+  /* 幅が狭いときは📋だけにして、入力欄の幅を確保する（実測の限界720pxに余裕を見て760px） */
+  @media (max-width:760px){
     .paste-load-btn .plb-label{display:none;}
     .paste-load-btn{padding:6px 9px;}
   }
-  /* 📋だけでもヘッダーに入らない幅では出さない（ほかの部品をはみ出させない） */
-  @media (max-width:860px){
+  /* 📋だけでもヘッダーに入らない幅では出さない（実測の限界620pxに余裕を見て660px） */
+  @media (max-width:660px){
     .paste-load-btn{display:none;}
   }
   /* ローカル動画モード：読み込み中のファイル名表示＋コピーボタン */
@@ -696,7 +697,7 @@
 
 <header>
   <div class="brand">
-    <h1>📷 スクショトリマー</h1>
+    <h1>スクショトリマー</h1>
     <span class="ver">PC版 v0.2</span>
   </div>
   <div class="mode-toggle" id="modeToggle">
