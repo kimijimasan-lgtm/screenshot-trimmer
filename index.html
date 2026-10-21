@@ -643,38 +643,51 @@
   /* メモのウィンドウ（画面の左半分）に隠れない、右半分の上に出す大きめの案内。
      ふつうのトーストとは別物で、見た目も位置も共有しない */
   .memo-notice{
-    position:fixed;top:70px;left:75%;transform:translateX(-50%) translateY(-10px);
-    z-index:80;width:min(460px,46vw);  /* left:75% だと残り幅25vwで折り返すため、幅を明示する */
-    display:flex;align-items:flex-start;gap:10px;
-    background:#fff6db;border:1px solid #f0dca6;border-left:5px solid #e8a317;
-    border-radius:12px;box-shadow:0 10px 30px rgba(10,12,18,.45);
-    padding:14px 14px 14px 16px;cursor:pointer;
+    position:fixed;top:72px;left:75%;transform:translateX(-50%) translateY(-10px);
+    z-index:80;width:43vw;   /* 右半分（50vw）の約86%。left:75% だけだと残り幅で折り返すので明示する */
+    background:#fff6db;border:4px solid #e8a317;
+    border-radius:16px;box-shadow:0 14px 40px rgba(10,12,18,.5);
+    padding:18px 18px 18px 22px;cursor:pointer;
     opacity:0;pointer-events:none;transition:opacity .2s ease, transform .2s ease;
   }
-  .memo-notice.show{opacity:1;transform:translateX(-50%) translateY(0);pointer-events:auto;}
+  .memo-notice.show{
+    opacity:1;transform:translateX(-50%) translateY(0);pointer-events:auto;
+    animation:memoPulse 1.9s ease-out infinite;   /* ゆっくり脈打つ影で、目に入りやすくする */
+  }
+  @keyframes memoPulse{
+    0%,100%{box-shadow:0 14px 40px rgba(10,12,18,.5), 0 0 0 0 rgba(232,163,23,.6);}
+    55%    {box-shadow:0 14px 40px rgba(10,12,18,.5), 0 0 0 16px rgba(232,163,23,0);}
+  }
+  @media (prefers-reduced-motion: reduce){
+    .memo-notice.show{animation:none;}            /* 「動きを減らす」設定の人には脈打たせない */
+  }
   .memo-notice-body{
-    flex:1;min-width:0;
-    font-size:18.5px;line-height:1.65;font-weight:700;color:#1f2430;
+    font-size:clamp(17px,2.1vw,27px);  /* 画面が狭いときは、はみ出さないよう小さくする */
+    line-height:1.65;font-weight:800;color:#1f2430;
     line-break:strict;text-wrap:pretty;
   }
   /* 文節ごとに区切り、言葉の途中で改行されないようにする */
   .memo-notice-body .nb{display:inline-block;}
-  /* 「Win + →」は、キーのような枠で、さらに大きく太く */
+  /* 「メモではなく、こちら」を目立たせる */
+  .memo-em{color:#c0392b;background:#ffe3a8;border-radius:6px;padding:0 4px;}
+  /* 「Win + →」は、キーのような枠で、本文の約1.3倍の大きさ */
   .memo-key{
-    display:inline-block;font-size:21px;font-weight:800;color:#1f2430;
-    background:#fff;border:1px solid #d8c48a;border-bottom-width:3px;
-    border-radius:7px;padding:1px 9px;margin:0 2px;white-space:nowrap;
+    display:inline-block;font-size:1.3em;font-weight:900;color:#1f2430;
+    background:#fff;border:2px solid #d8a93a;border-bottom-width:5px;
+    border-radius:9px;padding:1px 11px;margin:0 3px;white-space:nowrap;
   }
   .memo-notice-close{
-    flex-shrink:0;width:28px;height:28px;border-radius:50%;
-    border:1px solid #e3cf98;background:#fffdf5;color:#8a7430;
-    font-size:16px;line-height:1;cursor:pointer;
+    /* 右に回り込ませる。上の1〜2行だけがよけ、下の行は幅いっぱい使える */
+    float:right;margin:0 0 6px 12px;
+    width:44px;height:44px;border-radius:50%;
+    border:2px solid #e3cf98;background:#fffdf5;color:#8a7430;
+    font-size:26px;line-height:1;cursor:pointer;
     display:flex;align-items:center;justify-content:center;
   }
   .memo-notice-close:hover{background:#f6e8c4;color:#5c4d1f;}
   @media (max-width:699px){
     /* 画面が狭いときは左右に分ける意味がないので、画面いっぱいに近い幅で中央に出す */
-    .memo-notice{left:50%;width:min(460px,92vw);}
+    .memo-notice{left:50%;width:92vw;padding:14px;}  /* 余白も詰めて、文が入る幅をかせぐ */
   }
 
   .summary-mode{
@@ -1171,8 +1184,8 @@
 
 <div class="toast" id="toast"></div>
 <div class="memo-notice" id="memoNotice" role="status" aria-live="polite">
-  <div class="memo-notice-body" id="memoNoticeBody"></div>
   <button type="button" class="memo-notice-close" id="memoNoticeClose" aria-label="閉じる">&times;</button>
+  <div class="memo-notice-body" id="memoNoticeBody"></div>
 </div>
 
 <script src="https://www.youtube.com/iframe_api"></script>
@@ -1205,8 +1218,10 @@
     memoNotice.classList.remove('show');
     clearTimeout(hideMemoNotice._t);
   }
-  // parts は文節ごとの並び。文字列はそのまま、{key:'Win + →', after:'を押すと、'} は
-  // キーのような枠に入れて、続く助詞ごと1かたまりにする（言葉の途中で改行させない）
+  // parts は文節ごとの並び。言葉の途中で改行させないよう、1つずつ inline-block に入れる
+  //   文字列               … そのまま
+  //   {key:'Win + →', after} … キーのような枠に入れて、続く助詞ごと1かたまりにする
+  //   {em:'…'}             … 目立たせる文字（色つき）
   function showMemoNotice(parts){
     memoNoticeBody.textContent = '';
     parts.forEach(part=>{
@@ -1214,6 +1229,11 @@
       box.className = 'nb';
       if(typeof part === 'string'){
         box.textContent = part;
+      }else if(part.em){
+        const e = document.createElement('span');
+        e.className = 'memo-em';
+        e.textContent = part.em;
+        box.appendChild(e);
       }else{
         const k = document.createElement('span');
         k.className = 'memo-key';
@@ -1432,12 +1452,20 @@
   const MEMO_URL = 'https://crossmemo.web.app/';
   const MEMO_WIN_NAME = 'crossmemo';          // 名前つきウィンドウ。何度押してもメモは増えない
   const OPEN_MEMO_KEY = 'stOpenMemoOnOrganize';
-  // 文節ごとに区切って渡す（言葉の途中で改行させないため）。文は変えていない
+  // 文節ごとに区切って渡す（言葉の途中で改行させないため）
   const MEMO_OPENED_PARTS = [
-    'メモを', '左半分に', '開きました。',
-    'スクショトリマーの', '画面を', 'クリックしてから、',
-    { key: 'Win + →', after: 'を押すと、' },
+    'メモが', '左半分に', '開きました。',
+    '次に、', 'スクショトリマーの', '画面',
+    { em: '（メモではなく、こちら）' }, 'を、',
+    'クリックしてから、',
+    { key: 'Win + →', after: 'を押してください。' },
     '右半分に', '寄せられます'
+  ];
+  // トリミングの「キャンセル」で、全画面に戻してもらうための案内
+  const MEMO_RESTORE_PARTS = [
+    'ウィンドウを、', '元の大きさ', '（全画面）に', '戻すには、',
+    'スクショトリマーの', '画面を', 'クリックして、',
+    { key: 'Win + ↑', after: 'を押してください' }
   ];
   const MEMO_BLOCKED_PARTS = [
     'メモの', 'ウィンドウが、', 'ブロックされました。',
@@ -1458,6 +1486,7 @@
     if(!getOpenMemoOnOrganize()) return;
     if(memoWin && !memoWin.closed){          // すでに開いていれば、開き直さず前に出す
       try{ memoWin.focus(); }catch(_){}
+      refocusSelf();                         // フォーカスは、こちら（スクショトリマー）に戻す
       showMemoNotice(MEMO_OPENED_PARTS);
       return;
     }
@@ -1480,8 +1509,16 @@
     // （別ドメインのウィンドウなので、失敗することがある。そのときは開いたままにする）
     try{ win.moveTo(left, top); }catch(_){}
     try{ win.resizeTo(width, availH); }catch(_){}
-    try{ win.focus(); }catch(_){}
+    refocusSelf();                            // フォーカスは、こちら（スクショトリマー）に戻す
     showMemoNotice(MEMO_OPENED_PARTS);
+  }
+
+  // メモを開くと、メモ側にフォーカスが移る。そのまま Win + → を押すとメモが右に行ってしまうので、
+  // こちらのウィンドウにフォーカスを戻す。ブラウザの制限で効かないことがあるが、そのときも何もしない
+  function refocusSelf(){
+    const back = ()=>{ try{ window.focus(); }catch(_){} };
+    back();
+    setTimeout(back, 150);
   }
 
   // 「トップ部に戻る」：スクロールしているのはモーダルではなく settingsOverlay。設定は閉じない
@@ -2694,7 +2731,13 @@
     showView('organize');
   });
   document.getElementById('orgBack').addEventListener('click', ()=>showView('watch'));
-  document.getElementById('orgCancel').addEventListener('click', ()=>showView('watch'));
+  document.getElementById('orgCancel').addEventListener('click', ()=>{
+    showView('watch');
+    // メモを開いたあとだけ、全画面に戻す方法を案内する（ウィンドウの大きさはアプリから変えられない）
+    let memoOpen = false;
+    try{ memoOpen = !!(memoWin && !memoWin.closed); }catch(_){ memoOpen = false; }
+    if(memoOpen) showMemoNotice(MEMO_RESTORE_PARTS);
+  });
   document.getElementById('orgReset').addEventListener('click', ()=>{
     rel = {...DEFAULT_REL};
     layoutRectFromRel();
