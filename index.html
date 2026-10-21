@@ -99,11 +99,6 @@
     background:var(--ink);border:1px solid var(--hairline);border-radius:8px;
     padding:6px 18px;line-height:1.2;white-space:nowrap;
   }
-  .now-chapter{
-    font-size:11.5px;color:var(--text-lo);max-width:170px;min-width:0;
-    overflow:hidden;text-overflow:ellipsis;white-space:nowrap;display:none;
-  }
-  .now-chapter.show{display:block;}
   /* チャプター一覧（fab-areaがoverflow:hiddenなので position:fixed で重ねて出す） */
   .chapter-pop{
     position:fixed;z-index:75;width:330px;max-width:calc(100vw - 16px);
@@ -688,7 +683,6 @@
 </header>
 <div class="toolbar-row" id="toolbarRow">
   <div class="now-time mono" id="nowTime">0:00</div>
-  <div class="now-chapter" id="nowChapter"></div>
   <div class="bm-list" id="bmList">
     <label class="bm-row"><input type="checkbox" class="bm-check"><span class="bm-time mono empty">--:--</span></label>
     <label class="bm-row"><input type="checkbox" class="bm-check"><span class="bm-time mono empty">--:--</span></label>
@@ -1712,7 +1706,7 @@
     const ap = getActivePlayer();
     if(!ap.ready()) return;  // 動画未読み込み時は 0:00 のまま
     nowTimeEl.textContent = fmtTime(ap.currentTime());
-    if(typeof updateNowChapter === 'function') updateNowChapter();
+    if(typeof updateChapterHighlight === 'function') updateChapterHighlight();
     refreshPlayPauseIcon();
   }, 500);
 
@@ -1855,7 +1849,6 @@
   const chapterPop = document.getElementById('chapterPop');
   const chapterList = document.getElementById('chapterList');
   const chapterBtn = document.getElementById('bmChapterBtn');
-  const nowChapterEl = document.getElementById('nowChapter');
   let chaptersState = { videoId: null, data: null, promise: null };  // 動画ごとに1つだけ覚える
 
   function chaptersFor(videoId){
@@ -1883,7 +1876,6 @@
 
   // 動画を読み込んだとき、裏でチャプターを取得（失敗しても何も出さない）
   function prefetchChapters(videoId){
-    nowChapterEl.classList.remove('show');
     if(!transcriptServerAvailable || currentMode === 'local' || !videoId) return;
     chaptersFor(videoId).catch(()=>{});
   }
@@ -1894,15 +1886,12 @@
     return idx;
   }
 
-  function updateNowChapter(){
+  // 一覧を開いている間だけ、再生中の章の強調を更新する
+  function updateChapterHighlight(){
+    if(!chapterPop.classList.contains('show')) return;
     const d = (currentMode !== 'local' && chaptersState.videoId === currentVideoId) ? chaptersState.data : null;
-    if(!d || !d.chapters.length){ nowChapterEl.classList.remove('show'); return; }
-    const idx = currentChapterIndex(d.chapters, getActivePlayer().currentTime());
-    if(idx < 0){ nowChapterEl.classList.remove('show'); return; }
-    const title = d.chapters[idx].title;
-    if(nowChapterEl.textContent !== title){ nowChapterEl.textContent = title; nowChapterEl.title = title; }
-    nowChapterEl.classList.add('show');
-    if(chapterPop.classList.contains('show')) markCurrentChapterRow(idx);
+    if(!d || !d.chapters.length) return;
+    markCurrentChapterRow(currentChapterIndex(d.chapters, getActivePlayer().currentTime()));
   }
 
   function markCurrentChapterRow(idx){
