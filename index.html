@@ -964,7 +964,7 @@
           <button class="save-key" id="saveAnthropicKey">保存</button>
           <button class="test-key" id="testAnthropicKey">接続テスト</button>
           <button class="clear-key" id="clearAnthropicKey">クリア</button>
-          <button type="button" class="to-top-key" data-scroll-top>トップ画面に戻る</button>
+          <button type="button" class="to-top-key" data-scroll-top>トップ部に戻る</button>
         </div>
       </div>
     </div>
@@ -1049,7 +1049,7 @@
           <button class="save-key" id="saveApiKey">保存</button>
           <button class="test-key" id="testApiKey">接続テスト</button>
           <button class="clear-key" id="clearApiKey">クリア</button>
-          <button type="button" class="to-top-key" data-scroll-top>トップ画面に戻る</button>
+          <button type="button" class="to-top-key" data-scroll-top>トップ部に戻る</button>
         </div>
       </div>
     </div>
@@ -1309,7 +1309,7 @@
   document.querySelectorAll('[data-settings-back]').forEach(btn=>{
     btn.addEventListener('click', ()=>{ updateSettingsMenuState(); showSettingsPage('menu'); });
   });
-  // 「トップ画面に戻る」：スクロールしているのはモーダルではなく settingsOverlay。設定は閉じない
+  // 「トップ部に戻る」：スクロールしているのはモーダルではなく settingsOverlay。設定は閉じない
   document.querySelectorAll('[data-scroll-top]').forEach(btn=>{
     btn.addEventListener('click', ()=>{
       const reduce = window.matchMedia('(prefers-reduced-motion: reduce)').matches;
