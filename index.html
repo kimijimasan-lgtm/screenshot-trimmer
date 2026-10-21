@@ -640,19 +640,41 @@
     line-break:strict;text-wrap:pretty;word-break:auto-phrase;
   }
   .toast.show{opacity:1;transform:translateX(-50%) translateY(0);}
-  /* メモのウィンドウ（画面の左半分）に隠れないよう、右半分の上に出す案内 */
-  .toast.right-half{
-    left:auto;right:16px;bottom:auto;top:16px;
-    transform:translateY(-8px);max-width:min(416px,46vw);  /* 文節できれいに折り返す幅 */
+  /* メモのウィンドウ（画面の左半分）に隠れない、右半分の上に出す大きめの案内。
+     ふつうのトーストとは別物で、見た目も位置も共有しない */
+  .memo-notice{
+    position:fixed;top:70px;left:75%;transform:translateX(-50%) translateY(-10px);
+    z-index:80;width:min(460px,46vw);  /* left:75% だと残り幅25vwで折り返すため、幅を明示する */
+    display:flex;align-items:flex-start;gap:10px;
+    background:#fff6db;border:1px solid #f0dca6;border-left:5px solid #e8a317;
+    border-radius:12px;box-shadow:0 10px 30px rgba(10,12,18,.45);
+    padding:14px 14px 14px 16px;cursor:pointer;
+    opacity:0;pointer-events:none;transition:opacity .2s ease, transform .2s ease;
   }
-  .toast.right-half.show{transform:translateY(0);}
+  .memo-notice.show{opacity:1;transform:translateX(-50%) translateY(0);pointer-events:auto;}
+  .memo-notice-body{
+    flex:1;min-width:0;
+    font-size:18.5px;line-height:1.65;font-weight:700;color:#1f2430;
+    line-break:strict;text-wrap:pretty;
+  }
+  /* 文節ごとに区切り、言葉の途中で改行されないようにする */
+  .memo-notice-body .nb{display:inline-block;}
+  /* 「Win + →」は、キーのような枠で、さらに大きく太く */
+  .memo-key{
+    display:inline-block;font-size:21px;font-weight:800;color:#1f2430;
+    background:#fff;border:1px solid #d8c48a;border-bottom-width:3px;
+    border-radius:7px;padding:1px 9px;margin:0 2px;white-space:nowrap;
+  }
+  .memo-notice-close{
+    flex-shrink:0;width:28px;height:28px;border-radius:50%;
+    border:1px solid #e3cf98;background:#fffdf5;color:#8a7430;
+    font-size:16px;line-height:1;cursor:pointer;
+    display:flex;align-items:center;justify-content:center;
+  }
+  .memo-notice-close:hover{background:#f6e8c4;color:#5c4d1f;}
   @media (max-width:699px){
-    /* 画面が狭いときは左右に分ける意味がないので、いつもの場所（下の中央）に戻す */
-    .toast.right-half{
-      left:50%;right:auto;top:auto;bottom:24px;
-      transform:translateX(-50%) translateY(8px);max-width:min(560px,90%);
-    }
-    .toast.right-half.show{transform:translateX(-50%) translateY(0);}
+    /* 画面が狭いときは左右に分ける意味がないので、画面いっぱいに近い幅で中央に出す */
+    .memo-notice{left:50%;width:min(460px,92vw);}
   }
 
   .summary-mode{
@@ -1147,6 +1169,10 @@
 </div>
 
 <div class="toast" id="toast"></div>
+<div class="memo-notice" id="memoNotice" role="status" aria-live="polite">
+  <div class="memo-notice-body" id="memoNoticeBody"></div>
+  <button type="button" class="memo-notice-close" id="memoNoticeClose" aria-label="閉じる">&times;</button>
+</div>
 
 <script src="https://www.youtube.com/iframe_api"></script>
 <script>
@@ -1163,45 +1189,44 @@
   };
   const toast = document.getElementById('toast');
   function showToast(msg, duration){
-    clearStickyToast();                                       // 前の「操作があるまで消さない案内」を解除
     toast.textContent = msg;
     toast.classList.toggle('long', String(msg).length > 28);  // 長い案内は折り返す
-    toast.classList.remove('right-half');                     // 置き場所は、いつもの下の中央に戻す
     toast.classList.add('show');
     clearTimeout(showToast._t);
     showToast._t = setTimeout(()=>toast.classList.remove('show'), duration || 2400);
   }
 
-  // 右半分に出し、スクショトリマーのウィンドウに操作があるまで消さない案内。
-  // （メモのウィンドウを開いた直後は、こちらの画面が見えにくいので、先に消えてしまわないようにする）
-  const STICKY_ARM_MS   = 1500;   // 押した直後の動きは「操作」と数えない
-  const STICKY_AFTER_MS = 5000;   // 操作のあと、これだけで消す
-  const STICKY_MAX_MS   = 60000;  // 操作がなくても、これで必ず消す
-  let stickyToastOff = null;
-  function clearStickyToast(){
-    if(stickyToastOff){ stickyToastOff(); stickyToastOff = null; }
+  // メモを開いたときの案内。右半分の上に、大きく目立つカードで出す（ふつうのトーストとは別物）
+  const MEMO_NOTICE_MS = 12000;
+  const memoNotice = document.getElementById('memoNotice');
+  const memoNoticeBody = document.getElementById('memoNoticeBody');
+  function hideMemoNotice(){
+    memoNotice.classList.remove('show');
+    clearTimeout(hideMemoNotice._t);
   }
-  function showStickyToast(msg){
-    showToast(msg, STICKY_MAX_MS);          // 中で clearStickyToast() が走る
-    toast.classList.add('right-half');
-    const events = ['pointerdown','mousemove','keydown','wheel','touchstart'];
-    let armed = false, done = false;
-    const onAct = ()=>{
-      if(!armed || done) return;
-      done = true;
-      clearTimeout(showToast._t);
-      showToast._t = setTimeout(()=>toast.classList.remove('show'), STICKY_AFTER_MS);
-      off();
-    };
-    const armTimer = setTimeout(()=>{ armed = true; }, STICKY_ARM_MS);
-    function off(){
-      clearTimeout(armTimer);
-      events.forEach(e=> window.removeEventListener(e, onAct, true));
-      stickyToastOff = null;
-    }
-    events.forEach(e=> window.addEventListener(e, onAct, true));
-    stickyToastOff = off;
+  // parts は文節ごとの並び。文字列はそのまま、{key:'Win + →', after:'を押すと、'} は
+  // キーのような枠に入れて、続く助詞ごと1かたまりにする（言葉の途中で改行させない）
+  function showMemoNotice(parts){
+    memoNoticeBody.textContent = '';
+    parts.forEach(part=>{
+      const box = document.createElement('span');
+      box.className = 'nb';
+      if(typeof part === 'string'){
+        box.textContent = part;
+      }else{
+        const k = document.createElement('span');
+        k.className = 'memo-key';
+        k.textContent = part.key;
+        box.appendChild(k);
+        if(part.after) box.appendChild(document.createTextNode(part.after));
+      }
+      memoNoticeBody.appendChild(box);
+    });
+    memoNotice.classList.add('show');
+    clearTimeout(hideMemoNotice._t);
+    hideMemoNotice._t = setTimeout(hideMemoNotice, MEMO_NOTICE_MS);
   }
+  memoNotice.addEventListener('click', hideMemoNotice);   // ×でも、どこを押しても閉じる
   function setStatus(msg, warn){
     if(msg) showToast(msg, warn ? 5000 : 3000);
   }
@@ -1406,10 +1431,18 @@
   const MEMO_URL = 'https://crossmemo.web.app/';
   const MEMO_WIN_NAME = 'crossmemo';          // 名前つきウィンドウ。何度押してもメモは増えない
   const OPEN_MEMO_KEY = 'stOpenMemoOnOrganize';
-  const MEMO_SNAP_WINDOW_MS = 120000;  // 「整理する」のあと、この間だけスナップを待ち受ける
-  // 「Win + →」は、途中で改行されないよう、空白をノーブレークスペースにする
-  const MEMO_OPENED_MSG = 'メモを左半分に開きました。スクショトリマーの画面をクリックしてから、Win + → を押すと、右半分に寄せられます';
-  const MEMO_BLOCKED_MSG = 'メモのウィンドウが、ブロックされました。アドレスバーの右にある、ポップアップのマークから『許可』を選んで、もう一度『整理する』を押してください';
+  // 文節ごとに区切って渡す（言葉の途中で改行させないため）。文は変えていない
+  const MEMO_OPENED_PARTS = [
+    'メモを', '左半分に', '開きました。',
+    'スクショトリマーの', '画面を', 'クリックしてから、',
+    { key: 'Win + →', after: 'を押すと、' },
+    '右半分に', '寄せられます'
+  ];
+  const MEMO_BLOCKED_PARTS = [
+    'メモの', 'ウィンドウが、', 'ブロックされました。',
+    'アドレスバーの', '右にある、', 'ポップアップの', 'マークから',
+    '『許可』を', '選んで、', 'もう一度', '『整理する』を', '押してください'
+  ];
   const openMemoToggle = document.getElementById('openMemoToggle');
   function getOpenMemoOnOrganize(){ return localStorage.getItem(OPEN_MEMO_KEY) !== '0'; }  // 未保存＝オン
   openMemoToggle.checked = getOpenMemoOnOrganize();
@@ -1424,8 +1457,7 @@
     if(!getOpenMemoOnOrganize()) return;
     if(memoWin && !memoWin.closed){          // すでに開いていれば、開き直さず前に出す
       try{ memoWin.focus(); }catch(_){}
-      armMemoSnapFocus();
-      showStickyToast(MEMO_OPENED_MSG);
+      showMemoNotice(MEMO_OPENED_PARTS);
       return;
     }
     // スクショトリマーのウィンドウがあるモニターの作業領域（screen は今いるモニターを返す）
@@ -1439,7 +1471,7 @@
     let win = null;
     try{ win = window.open(MEMO_URL, MEMO_WIN_NAME, feats); }catch(_){ win = null; }
     if(!win){
-      showStickyToast(MEMO_BLOCKED_MSG);
+      showMemoNotice(MEMO_BLOCKED_PARTS);
       return;                                 // 整理の処理は止めない（呼び出し側で続行）
     }
     memoWin = win;
@@ -1448,29 +1480,8 @@
     try{ win.moveTo(left, top); }catch(_){}
     try{ win.resizeTo(width, availH); }catch(_){}
     try{ win.focus(); }catch(_){}
-    armMemoSnapFocus();
-    showStickyToast(MEMO_OPENED_MSG);
+    showMemoNotice(MEMO_OPENED_PARTS);
   }
-
-  // Win + → でスクショトリマーが右半分になったとき、Windowsの「スナップ アシスト」より先に
-  // メモのウィンドウを前に出す。ブラウザの制限で効かないことがあるが、そのときも何もしない
-  let memoSnapUntil = 0;      // この時刻まで待ち受ける
-  let memoSnapDone = false;   // 1回だけ
-  function armMemoSnapFocus(){
-    memoSnapUntil = Date.now() + MEMO_SNAP_WINDOW_MS;
-    memoSnapDone = false;
-  }
-  window.addEventListener('resize', ()=>{
-    if(memoSnapDone || Date.now() > memoSnapUntil) return;
-    if(!memoWin) return;
-    try{ if(memoWin.closed) return; }catch(_){ return; }   // すでに閉じられていたら何もしない
-    const availW = (window.screen && (window.screen.availWidth || window.screen.width)) || 0;
-    if(!availW) return;
-    const ratio = window.outerWidth / availW;
-    if(ratio < 0.45 || ratio > 0.55) return;               // 半分程度になったときだけ
-    memoSnapDone = true;
-    try{ memoWin.focus(); }catch(_){}
-  });
 
   // 「トップ部に戻る」：スクロールしているのはモーダルではなく settingsOverlay。設定は閉じない
   document.querySelectorAll('[data-scroll-top]').forEach(btn=>{
