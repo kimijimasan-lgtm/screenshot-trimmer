@@ -36,7 +36,8 @@
   /* アプリ名とバージョンは2段（横幅を使わず、ヘッダーの他の部品に余裕を作る） */
   .brand{display:flex;flex-direction:column;align-items:flex-start;gap:0;white-space:nowrap;flex:0 0 auto;}
   .brand h1{font-size:18px;line-height:1.2;margin:0;font-weight:800;letter-spacing:-.01em;}
-  .brand .ver{font-size:10px;line-height:1.1;color:var(--text-lo);letter-spacing:.1em;text-transform:uppercase;font-weight:700;}
+  /* バージョンはアプリ名の右端（「トリマー」の下）にそろえる */
+  .brand .ver{align-self:flex-end;font-size:10px;line-height:1.1;color:var(--accent);letter-spacing:.1em;text-transform:uppercase;font-weight:700;}
   /* モード切替ピル（YouTube / ローカル） */
   .mode-toggle{
     display:flex;gap:2px;background:var(--panel-2);border:1px solid var(--hairline);
@@ -61,18 +62,18 @@
     background:var(--accent);color:#1c0a05;font-weight:700;font-size:12.5px;cursor:pointer;white-space:nowrap;
   }
   .load-btn:hover{filter:brightness(1.06);}
-  /* クリップボードのYouTubeアドレスを貼って読み込むボタン（「読み込む」と区別がつく枠付き） */
+  /* クリップボードのYouTubeアドレスを貼って読み込むボタン（「読み込む」と同じ塗り。主役は「読み込む」なので一回り小さく） */
   .paste-load-btn{
     display:flex;align-items:center;gap:5px;flex:0 0 auto;
-    padding:6px 12px;border-radius:8px;border:1px solid var(--hairline);
-    background:var(--panel-2);color:var(--text-hi);font-size:12.5px;font-weight:700;
+    padding:5px 11px;border-radius:8px;border:none;
+    background:var(--accent);color:#1c0a05;font-size:11.5px;font-weight:700;
     cursor:pointer;white-space:nowrap;
   }
-  .paste-load-btn:hover{border-color:var(--accent-2);}
+  .paste-load-btn:hover{filter:brightness(1.06);}
   /* 幅が狭いときは📋だけにして、入力欄の幅を確保する（実測の限界720pxに余裕を見て760px） */
   @media (max-width:760px){
     .paste-load-btn .plb-label{display:none;}
-    .paste-load-btn{padding:6px 9px;}
+    .paste-load-btn{padding:5px 8px;}
   }
   /* 📋だけでもヘッダーに入らない幅では出さない（実測の限界620pxに余裕を見て660px） */
   @media (max-width:660px){
