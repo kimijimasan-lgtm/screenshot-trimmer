@@ -982,10 +982,11 @@
         <div class="settings-menu-card-desc">なくてもアプリは使えます</div>
       </button>
 
-      <!-- 「整理する」でメモ（PCスマホ連動メモ）を左半分に開くかどうか。初期値はオン -->
+      <!-- 「この範囲を全部に適用 →」でメモ（PCスマホ連動メモ）を左半分に開くかどうか。初期値はオン
+           保存用の名前は stOpenMemoOnOrganize のまま（今までの設定を引き継ぐため） -->
       <label class="settings-switch">
         <input type="checkbox" id="openMemoToggle" checked>
-        <span class="settings-switch-text"><span>整理するとき、</span><span>メモを</span><span>左半分に</span><span>開く</span></span>
+        <span class="settings-switch-text"><span>全部に適用するとき、</span><span>メモを</span><span>左半分に</span><span>開く</span></span>
       </label>
     </div>
 
@@ -1427,7 +1428,7 @@
   document.querySelectorAll('[data-settings-back]').forEach(btn=>{
     btn.addEventListener('click', ()=>{ updateSettingsMenuState(); showSettingsPage('menu'); });
   });
-  // ---------- 「整理する」でメモ（PCスマホ連動メモ）を左半分に開く ----------
+  // ---------- 「この範囲を全部に適用 →」でメモ（PCスマホ連動メモ）を左半分に開く ----------
   const MEMO_URL = 'https://crossmemo.web.app/';
   const MEMO_WIN_NAME = 'crossmemo';          // 名前つきウィンドウ。何度押してもメモは増えない
   const OPEN_MEMO_KEY = 'stOpenMemoOnOrganize';
@@ -1441,7 +1442,7 @@
   const MEMO_BLOCKED_PARTS = [
     'メモの', 'ウィンドウが、', 'ブロックされました。',
     'アドレスバーの', '右にある、', 'ポップアップの', 'マークから',
-    '『許可』を', '選んで、', 'もう一度', '『整理する』を', '押してください'
+    '『許可』を', '選んで、', 'もう一度', '『この範囲を全部に適用』を', '押してください'
   ];
   const openMemoToggle = document.getElementById('openMemoToggle');
   function getOpenMemoOnOrganize(){ return localStorage.getItem(OPEN_MEMO_KEY) !== '0'; }  // 未保存＝オン
@@ -1451,7 +1452,7 @@
   });
 
   let memoWin = null;
-  // 「整理する」のクリックの直後に、同期的に呼ぶこと
+  // 「この範囲を全部に適用 →」のクリックの直後に、同期的に呼ぶこと
   //（時間のかかる処理のあとに呼ぶと、ポップアップがブロックされる）
   function openMemoHalf(){
     if(!getOpenMemoOnOrganize()) return;
@@ -2686,7 +2687,6 @@
   }
 
   organizeBtn.addEventListener('click', ()=>{
-    openMemoHalf();            // クリックの直後に同期的に（あとに置くとポップアップがブロックされる）
     // 再生中なら一時停止する（止まっているときは何もしない）
     try{ const ap = getActivePlayer(); if(ap.isPlaying()) ap.pause(); }catch(e){}
     cropImg.src = shots[0].dataUrl;
@@ -2779,6 +2779,7 @@
   }
 
   document.getElementById('orgApply').addEventListener('click', async ()=>{
+    openMemoHalf();            // クリックの直後に同期的に（あとに置くとポップアップがブロックされる）
     showView('review');
     revGrid.innerHTML = '';
     croppedShots = [];
