@@ -686,13 +686,30 @@
   .rev-grid{flex:1 1 0;min-height:0;overflow-y:auto;overflow-x:hidden;padding:12px 16px;display:grid;grid-template-columns:repeat(auto-fill,minmax(110px,1fr));gap:10px;align-content:start;border-top:1px solid var(--hairline);background:var(--panel);}
   .rev-grid::-webkit-scrollbar{width:8px;}
   .rev-grid::-webkit-scrollbar-thumb{background:var(--hairline);border-radius:4px;}
-  .rev-item{position:relative;border-radius:8px;overflow:hidden;border:1px solid var(--hairline);cursor:pointer;}
+  .rev-item{position:relative;border-radius:8px;overflow:hidden;border:2px solid var(--hairline);cursor:pointer;}
   .rev-item:hover{border-color:#4a4d59;}
   .rev-item.selected{border-color:var(--accent-2);box-shadow:0 0 0 2px var(--accent-2);}
-  .rev-item img{width:100%;display:block;object-fit:cover;}
-  .rev-item .check{position:absolute;top:6px;right:6px;width:20px;height:20px;border-radius:50%;background:var(--accent-2);color:#04211e;font-size:12px;display:flex;align-items:center;justify-content:center;font-weight:800;opacity:0;transform:scale(.5);transition:opacity .2s ease, transform .2s ease;}
-  .rev-item.done .check{opacity:1;transform:scale(1);}
+  .rev-item.checked{border-color:#2dd4a0;}
+  .rev-item.checked::after{content:'';position:absolute;inset:0;background:rgba(10,11,16,.25);pointer-events:none;}
+  .rev-item img{width:100%;display:block;object-fit:cover;-webkit-user-drag:none;}
+  .rev-item .check{position:absolute;top:4px;right:4px;width:26px;height:26px;border-radius:50%;background:rgba(40,44,56,.7);border:2px solid rgba(255,255,255,.35);color:transparent;font-size:13px;display:flex;align-items:center;justify-content:center;font-weight:800;cursor:pointer;z-index:2;transition:background .15s ease, border-color .15s ease, color .15s ease, transform .15s ease;}
+  .rev-item .check:hover{background:rgba(60,64,76,.9);border-color:rgba(255,255,255,.5);transform:scale(1.1);}
+  .rev-item.checked .check{background:#22c55e;border-color:#22c55e;color:#fff;}
   .rev-item .idx{position:absolute;left:6px;bottom:6px;font-size:10px;color:var(--text-hi);background:rgba(10,11,16,.65);padding:1px 6px;border-radius:4px;}
+  .rev-preview .prev-check{position:absolute;left:12px;top:30px;font-size:11px;color:#22c55e;background:rgba(10,11,16,.7);padding:2px 8px;border-radius:4px;pointer-events:none;opacity:0;transition:opacity .2s ease;}
+  .rev-preview .prev-check.on{opacity:1;}
+  .btn-danger{background:#b91c1c;color:#fff;}
+  .btn-danger:hover{filter:brightness(1.15);}
+  .rev-confirm-overlay{position:fixed;inset:0;background:rgba(0,0,0,.55);display:flex;align-items:center;justify-content:center;z-index:90;opacity:0;pointer-events:none;transition:opacity .2s ease;}
+  .rev-confirm-overlay.show{opacity:1;pointer-events:auto;}
+  .rev-confirm-box{background:var(--panel-2);border:1px solid var(--hairline);border-radius:14px;padding:24px 28px;max-width:min(400px,90vw);text-align:center;line-break:strict;text-wrap:pretty;}
+  .rev-confirm-box p{margin:0 0 20px;font-size:14px;line-height:1.65;}
+  .rev-confirm-box .rev-confirm-btns{display:flex;gap:10px;justify-content:center;}
+  .rev-confirm-box .rev-confirm-btns button{flex:1;max-width:160px;padding:10px 16px;border:none;border-radius:10px;font-size:13.5px;font-weight:700;cursor:pointer;}
+  .rev-confirm-box .rev-confirm-cancel{background:var(--panel);color:var(--text-lo);border:1px solid var(--hairline);}
+  .rev-confirm-box .rev-confirm-cancel:hover{color:var(--text-hi);border-color:#4a4d59;}
+  .rev-confirm-box .rev-confirm-delete{background:#dc2626;color:#fff;}
+  .rev-confirm-box .rev-confirm-delete:hover{filter:brightness(1.12);}
   .rev-progress{padding:0 20px 10px;color:var(--text-lo);font-size:12px;display:flex;justify-content:space-between;background:var(--ink);}
 
   .toast{
@@ -1003,13 +1020,25 @@
       <img id="revPreviewImg" alt="選択中のキャプチャ" draggable="false">
     </div>
     <span class="prev-idx mono" id="revPreviewIdx"></span>
+    <span class="prev-check" id="revPreviewCheck">✓ 貼り付け済み</span>
     <span class="prev-hint">ホイールで前後に切替 ／ この画像をドラッグして他アプリへ貼り付け</span>
   </div>
   <div class="rev-grid" id="revGrid"></div>
   <div class="rev-progress mono"><span id="revProgressLabel">0 / 0 完了</span><span id="revSizeLabel"></span></div>
   <div class="ov-foot">
     <button class="btn btn-ghost" id="revRedo">やり直す</button>
+    <button class="btn btn-danger" id="revBulkDelete" disabled>🗑 一括削除</button>
     <button class="btn btn-primary" id="revSave">💾 一括保存</button>
+  </div>
+</div>
+
+<div class="rev-confirm-overlay" id="revConfirmOverlay">
+  <div class="rev-confirm-box">
+    <p id="revConfirmMsg"></p>
+    <div class="rev-confirm-btns">
+      <button class="rev-confirm-cancel" id="revConfirmCancel">キャンセル</button>
+      <button class="rev-confirm-delete" id="revConfirmDelete">削除</button>
+    </div>
   </div>
 </div>
 
@@ -2972,6 +3001,11 @@
   const revPreviewIdx = document.getElementById('revPreviewIdx');
   let croppedShots = [];
   let revSelected = 0;
+  const revPreviewCheck = document.getElementById('revPreviewCheck');
+  const revBulkDelete = document.getElementById('revBulkDelete');
+  const revConfirmOverlay = document.getElementById('revConfirmOverlay');
+  const revConfirmMsg = document.getElementById('revConfirmMsg');
+  let revChecked = new Set();
 
   function selectRev(i){
     if(!croppedShots.length) return;
@@ -2985,6 +3019,7 @@
       el.classList.toggle('selected', on);
       if(on) el.scrollIntoView({block:'nearest'});
     });
+    revPreviewCheck.classList.toggle('on', revChecked.has(revSelected));
   }
 
   function cropImageData(shot, rel){
@@ -3003,35 +3038,84 @@
     });
   }
 
+  function updateRevCheckUI(){
+    revGrid.querySelectorAll('.rev-item').forEach(el=>{
+      el.classList.toggle('checked', revChecked.has(Number(el.dataset.i)));
+    });
+    revPreviewCheck.classList.toggle('on', revChecked.has(revSelected));
+    revBulkDelete.disabled = revChecked.size === 0;
+  }
+
+  function toggleRevCheck(i){
+    if(revChecked.has(i)) revChecked.delete(i); else revChecked.add(i);
+    updateRevCheckUI();
+  }
+
+  function markRevChecked(i){
+    if(!revChecked.has(i)){ revChecked.add(i); updateRevCheckUI(); }
+  }
+
   document.getElementById('orgApply').addEventListener('click', async ()=>{
-    openMemoHalf();            // クリックの直後に同期的に（あとに置くとポップアップがブロックされる）
+    openMemoHalf();
     showView('review');
     revGrid.innerHTML = '';
     croppedShots = [];
+    revChecked = new Set();
     revProgressLabel.textContent = '0 / '+shots.length+' 完了';
+    updateRevCheckUI();
 
     for(let i=0;i<shots.length;i++){
       const cropped = await cropImageData(shots[i], rel);
       croppedShots.push(cropped);
       const item = document.createElement('div');
       item.className = 'rev-item';
+      item.draggable = true;
       item.dataset.i = i;
-      item.title = 'クリックで上のプレビューに表示';
+      item.title = 'クリックで上のプレビューに表示 ／ ドラッグで他アプリへコピー';
       item.innerHTML = '<img src="'+cropped.dataUrl+'" alt="cropped '+(i+1)+'" draggable="false">'+
         '<span class="idx mono">'+String(i+1).padStart(2,'0')+'</span>'+
-        '<span class="check">✓</span>';
+        '<span class="check" title="貼り付け済みの印">✓</span>';
       revGrid.appendChild(item);
-      requestAnimationFrame(()=>item.classList.add('done'));
       revProgressLabel.textContent = (i+1)+' / '+shots.length+' 完了';
       if(i === 0) selectRev(0);
     }
   });
 
-  // サムネイルクリックでプレビューに表示
+  // チェックマーク（.check）のクリックでトグル、それ以外はプレビュー切替
+  let revDragged = false;
   revGrid.addEventListener('click', (e)=>{
+    if(revDragged){ revDragged = false; return; }
     const item = e.target.closest('.rev-item');
     if(!item) return;
+    if(e.target.closest('.check')){
+      toggleRevCheck(Number(item.dataset.i));
+      return;
+    }
     selectRev(Number(item.dataset.i));
+  });
+
+  // rev-gridのドラッグ：小さなサムネイルも外部へドラッグ
+  revGrid.addEventListener('dragstart', (e)=>{
+    const item = e.target.closest('.rev-item');
+    if(!item){ e.preventDefault(); return; }
+    const idx = Number(item.dataset.i);
+    const cropped = croppedShots[idx];
+    if(!cropped){ e.preventDefault(); return; }
+    try{
+      setShotDragData(e, cropped);
+      item.dataset.dragging = '1';
+    }catch(err){
+      e.preventDefault();
+    }
+  });
+  revGrid.addEventListener('dragend', (e)=>{
+    const item = e.target.closest('.rev-item');
+    if(!item) return;
+    if(item.dataset.dragging === '1'){
+      delete item.dataset.dragging;
+      markRevChecked(Number(item.dataset.i));
+      revDragged = true;
+    }
   });
 
   // プレビュー上のホイールで前後の画像に切替
@@ -3047,15 +3131,58 @@
     if(!cropped){ e.preventDefault(); return; }
     try{
       setShotDragData(e, cropped);
-      console.log('[ST-DEBUG] dragstart OK payload='+Math.round((cropped.jpeg||'').length/1024)+'KB');
     }catch(err){
-      console.log('[ST-DEBUG] dragstart failed:', err);
       e.preventDefault();
     }
   });
   revPreviewDrag.addEventListener('dragend', (e)=>{
-    console.log('[ST-DEBUG] dragend dropEffect='+e.dataTransfer.dropEffect);
+    markRevChecked(revSelected);
   });
+
+  // 一括削除
+  function openRevConfirm(){
+    const n = revChecked.size;
+    if(n === 0) return;
+    revConfirmMsg.textContent = 'チェック済みの '+n+' 枚を削除しますか？';
+    revConfirmOverlay.classList.add('show');
+    document.getElementById('revConfirmCancel').focus();
+  }
+  function closeRevConfirm(){ revConfirmOverlay.classList.remove('show'); }
+  function execBulkDelete(){
+    closeRevConfirm();
+    const keep = [];
+    for(let i=0;i<croppedShots.length;i++){
+      if(!revChecked.has(i)) keep.push(croppedShots[i]);
+    }
+    croppedShots = keep;
+    revChecked = new Set();
+    if(croppedShots.length === 0){
+      showView('watch');
+      showToast('すべて削除しました');
+      return;
+    }
+    revGrid.innerHTML = '';
+    for(let i=0;i<croppedShots.length;i++){
+      const item = document.createElement('div');
+      item.className = 'rev-item';
+      item.draggable = true;
+      item.dataset.i = i;
+      item.title = 'クリックで上のプレビューに表示 ／ ドラッグで他アプリへコピー';
+      item.innerHTML = '<img src="'+croppedShots[i].dataUrl+'" alt="cropped '+(i+1)+'" draggable="false">'+
+        '<span class="idx mono">'+String(i+1).padStart(2,'0')+'</span>'+
+        '<span class="check" title="貼り付け済みの印">✓</span>';
+      revGrid.appendChild(item);
+    }
+    revProgressLabel.textContent = croppedShots.length+' / '+croppedShots.length+' 完了';
+    selectRev(0);
+    updateRevCheckUI();
+    showToast('チェック済みの画像を削除しました');
+  }
+  revBulkDelete.addEventListener('click', openRevConfirm);
+  document.getElementById('revConfirmCancel').addEventListener('click', closeRevConfirm);
+  document.getElementById('revConfirmDelete').addEventListener('click', execBulkDelete);
+  revConfirmOverlay.addEventListener('click', (e)=>{ if(e.target === revConfirmOverlay) closeRevConfirm(); });
+  window.addEventListener('keydown', (e)=>{ if(e.key === 'Escape' && revConfirmOverlay.classList.contains('show')) closeRevConfirm(); });
 
   document.getElementById('revBack').addEventListener('click', ()=>showView('organize'));
   document.getElementById('revRedo').addEventListener('click', ()=>showView('organize'));
