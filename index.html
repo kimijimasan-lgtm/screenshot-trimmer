@@ -2634,8 +2634,35 @@
     shareStatus.classList.remove('on');
   }
 
+  // 共有が今も生きているか（止まった映像を使い回して、黒い絵を撮らないため）
+  function isStreamLive(){
+    const t = displayStream && displayStream.getVideoTracks()[0];
+    return !!(t && t.readyState === 'live');
+  }
+
+  // 画面共有の許可ダイアログの間だけ、動画を止める。
+  // 返ってきた関数を呼ぶと、もともと再生中だったときだけ、再生に戻す（何度呼んでも、効くのは1回だけ）。
+  // YouTube・ローカル動画のどちらでも、getActivePlayer() 越しに同じように効く
+  function pauseForShareDialog(){
+    let wasPlaying = false;
+    try{
+      const ap = getActivePlayer();
+      wasPlaying = !!ap.isPlaying();
+      if(wasPlaying) ap.pause();
+    }catch(_){}
+    let done = false;
+    return function resumeAfterShareDialog(){
+      if(done) return;
+      done = true;
+      if(!wasPlaying) return;              // もともと止まっていたなら、止めたまま
+      try{ getActivePlayer().play(); }catch(_){}
+    };
+  }
+
+  // 許可済みの共有が生きていれば、そのまま使い回す。死んでいるときだけ、許可を求め直す
   async function ensureDisplayStream(){
-    if(displayStream) return displayStream;
+    if(isStreamLive()) return displayStream;
+    if(displayStream) clearStream();       // 止まった共有は忘れてから、求め直す
     setStatus('共有ダイアログで「このタブ」を選ぶと動画がそのまま写ります。');
     displayStream = await navigator.mediaDevices.getDisplayMedia({
       video: { displaySurface: 'browser' },
@@ -2779,10 +2806,12 @@
     }
     capturing = true;
     fab.disabled = true;
+    // 共有が生きていないときだけ、許可ダイアログが出る。そのときだけ動画を止める
+    const needsDialog = !isStreamLive();
+    const resumeAfterDialog = needsDialog ? pauseForShareDialog() : null;
     try{
-      const firstTime = !displayStream;
       await ensureDisplayStream();
-      if(firstTime){
+      if(needsDialog){
         await new Promise(r=>setTimeout(r, 300));
       }
       fabArea.style.visibility = 'hidden';
@@ -2800,12 +2829,15 @@
       renderThumbs();
     }catch(err){
       if(err.name === 'NotAllowedError'){
-        setStatus('画面共有がキャンセルされました。📷を押して「このタブ」を選ぶとキャプチャできます。', true);
+        setStatus('画面共有が許可されませんでした。📷を押して「このタブ」を選ぶとキャプチャできます。', true);
       }else{
         setStatus('キャプチャに失敗しました: ' + err.message, true);
       }
-      clearStream();
+      // 共有が生きているなら、忘れない（忘れると、次のキャプチャで、いらない許可ダイアログが出る）
+      if(!isStreamLive()) clearStream();
     }finally{
+      // 成功でも失敗でも、必ずここを通る。再開は1回だけ効く
+      if(resumeAfterDialog) resumeAfterDialog();
       capturing = false;
       fab.disabled = false;
     }
@@ -2814,6 +2846,7 @@
   // ---- デバッグ: Dキーで直近キャプチャの生データ・現在フレーム・診断情報を書き出し ----
   window.addEventListener('keydown', (e)=>{
     if(e.key !== 'd' && e.key !== 'D') return;
+    if(e.ctrlKey || e.metaKey || e.altKey) return;   // Ctrl+D（ブックマーク）などでは書き出さない
     if(e.target.tagName === 'INPUT' || e.target.tagName === 'TEXTAREA') return;
     const track = displayStream && displayStream.getVideoTracks()[0];
     const rect = playerFrame.getBoundingClientRect();
@@ -2843,6 +2876,7 @@
   // Cキーで即キャプチャ（入力欄フォーカス中は除く）
   window.addEventListener('keydown', (e)=>{
     if(e.key !== 'c' && e.key !== 'C') return;
+    if(e.ctrlKey || e.metaKey || e.altKey) return;   // Ctrl+C（コピー）などでは撮らない
     if(e.target.tagName === 'INPUT' || e.target.tagName === 'TEXTAREA') return;
     if(overlayActive()) return;
     e.preventDefault();
