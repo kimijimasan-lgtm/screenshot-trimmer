@@ -171,7 +171,25 @@
   .stop-share:hover{color:var(--text-hi);}
 
   /* ---------- settings ---------- */
+  /* 「⚙ 設定」と、その真下のAPIキーの状態表示（右端をそろえる）。
+     ヘッダーの高さ(53px)を増やさないよう、アプリ名＋バージョンの2段と同じ小さな文字で収める */
   .settings-wrap{position:relative;flex:0 0 auto;}
+  /* 状態表示は position:absolute でボタンの真下に重ねる。
+     こうすると「⚙ 設定」ボタンの大きさも位置も変わらず、ヘッダーの高さ(53px)も増えない
+     （ヘッダーの下の余白8pxの中に、10pxの1行が収まる） */
+  .api-key-status{
+    position:absolute;top:calc(100% + 1px);right:0;
+    font-size:10px;line-height:1;text-align:right;white-space:nowrap;
+    letter-spacing:.01em;
+  }
+  .api-key-status .not-set{color:var(--accent);font-weight:700;}
+  .api-key-status .set-link{color:var(--accent);cursor:pointer;text-decoration:underline;display:inline-block;}
+  .api-key-status .is-set{color:var(--accent-2);}
+  /* 幅が狭いと、この1行がモード切替ピルの下に潜り込む。短い言葉に切り替えてかわす
+     （全文は title に残す）。実測の限界531pxに余裕を見て580px */
+  @media (max-width:580px){
+    .api-key-status .aks-long{display:none;}
+  }
   .settings-btn{
     padding:5px 12px;border-radius:8px;border:1px solid var(--hairline);
     background:var(--panel-2);color:var(--text-lo);font-size:12px;font-weight:700;cursor:pointer;
@@ -527,6 +545,9 @@
     background:rgba(255,93,58,.07);border-color:rgba(255,93,58,.3);
     padding:12px 9px;
   }
+  /* 再生まわりとカメラは、右パネルのいちばん下に寄せる（カメラが最下段）。
+     高さが足りないときは、上の余白が0になるだけで、並び順は変わらない */
+  .fab-group-playback{margin-top:auto;}
 
   .playback-controls{display:flex;align-items:center;gap:8px;}
   .ctrl-btn{
@@ -742,21 +763,6 @@
   .summary-mode input{position:absolute;opacity:0;pointer-events:none;}
   .summary-mode label:has(input:checked){background:var(--panel-2);color:var(--text-hi);border-color:var(--accent);font-weight:700;}
   .summary-mode label:has(input:focus-visible){outline:2px solid var(--accent);}
-  .summarize-hint{
-    font-size:10.5px;color:var(--text-lo);text-align:center;
-    line-height:1.3;width:100%;
-  }
-  .summarize-status{
-    font-size:10.5px;color:var(--text-lo);text-align:center;
-    line-height:1.3;width:100%;min-height:14px;
-  }
-  .summarize-status.ready{color:var(--accent-2);font-weight:700;}
-  .api-key-status{
-    font-size:10.5px;text-align:center;line-height:1.3;width:100%;min-height:14px;
-  }
-  .api-key-status .not-set{color:var(--text-lo);}
-  .api-key-status .set-link{color:var(--accent);cursor:pointer;text-decoration:underline;font-size:10px;display:inline-block;}
-  .api-key-status .is-set{color:var(--accent-2);}
 
   /* ---------- summarize button ---------- */
   .btn-summarize{
@@ -826,6 +832,7 @@
   <span class="share-status" id="shareStatus"><span class="dot"></span>画面共有中 <button class="stop-share" id="stopShareBtn">停止</button></span>
   <div class="settings-wrap">
     <button class="settings-btn" id="settingsBtn" title="設定">⚙ 設定</button>
+    <div class="api-key-status" id="apiKeyStatus"></div>
   </div>
 </header>
 <div class="toolbar-row" id="toolbarRow">
@@ -878,9 +885,6 @@
         <label><input type="radio" name="summaryMode" value="points" checked>要点まとめ</label>
         <label><input type="radio" name="summaryMode" value="detail">項目別(解説)</label>
       </div>
-      <div class="summarize-hint">① 始点と終点を「取得」→ ② ボタンを押す</div>
-      <div class="summarize-status" id="summarizeStatus"></div>
-      <div class="api-key-status" id="apiKeyStatus"></div>
     </div>
 
     <div class="fab-group fab-group-bookmark">
@@ -2170,7 +2174,6 @@
   });
 
   const summarizeBtn = document.getElementById('summarizeBtn');
-  const summarizeStatusEl = document.getElementById('summarizeStatus');
   const apiKeyStatusEl = document.getElementById('apiKeyStatus');
   let bmCheckOrder = [];
   let summarizing = false;
@@ -2178,9 +2181,11 @@
   function updateApiKeyStatus(){
     const hasKey = !!getAnthropicKey();
     if(hasKey){
-      apiKeyStatusEl.innerHTML = '<span class="is-set">Anthropic APIキー：設定済み ✓</span>';
+      apiKeyStatusEl.title = 'Anthropic APIキー：設定済み';
+      apiKeyStatusEl.innerHTML = '<span class="is-set"><span class="aks-long">Anthropic APIキー：設定済み </span>✓</span>';
     }else{
-      apiKeyStatusEl.innerHTML = '<span class="not-set">Anthropic APIキー：未設定</span> <span class="set-link" id="openSettingsLink">設定を開く</span>';
+      apiKeyStatusEl.title = 'Anthropic APIキー：未設定（「設定を開く」で設定できます）';
+      apiKeyStatusEl.innerHTML = '<span class="not-set"><span class="aks-long">Anthropic APIキー：</span>未設定</span> <span class="set-link" id="openSettingsLink">設定を開く</span>';
       const link = document.getElementById('openSettingsLink');
       if(link) link.addEventListener('click', ()=> openSettings('anthropic'));
     }
@@ -2210,13 +2215,6 @@
     if(summarizing){ summarizeBtn.disabled = true; return; }
     const checkedCount = bmChecks.filter(c=>c.checked).length;
     summarizeBtn.disabled = checkedCount !== 2 || !!summarizeFlashTimer;
-    if(checkedCount < 2){
-      summarizeStatusEl.textContent = 'あと：タイムスタンプを2つ選ぶ';
-      summarizeStatusEl.className = 'summarize-status';
-    }else{
-      summarizeStatusEl.textContent = '準備OK';
-      summarizeStatusEl.className = 'summarize-status ready';
-    }
     updateApiKeyStatus();
   }
 
