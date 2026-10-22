@@ -524,18 +524,21 @@
   .thumb .del:hover{color:var(--text-hi);background:rgba(200,40,20,.8);}
   .empty-hint{margin:auto;text-align:center;color:var(--text-lo);font-size:12px;line-height:1.8;padding:0 14px;}
 
-  /* いちばん下の段は、左にカメラのカード、右に「整理する」。高さはカメラのカードにそろえる */
+  /* いちばん下の段は、左にカメラのカード、右に「整理する」。高さはカメラのカードにそろえる。
+     画像の一覧を広く取るため、段は低くする（カード58px＋上下の余白10px×2＋罫線1px＝79px） */
   .side-foot{
-    padding:12px 14px;border-top:1px solid var(--hairline);
+    padding:10px 14px;border-top:1px solid var(--hairline);
     display:flex;align-items:stretch;gap:10px;flex:0 0 auto;
   }
-  .side-foot .fab-group-shutter{flex:1 1 0;min-width:0;}
-  /* 幅が半分になるので、アイコンを上・文字を下の2段にして、文字が切れないようにする */
+  .side-foot .fab-group-shutter{flex:1 1 0;min-width:0;padding:6px 9px;}
+  /* カメラはアイコンだけ（「C キー」の文字は出さず、title で伝える） */
+  .side-foot .fab{font-size:44px;padding:0;}
+  /* 段が低いので、アイコンと文字は横1行に並べる */
   .side-foot .btn-organize{
     flex:1 1 0;min-width:0;
-    flex-direction:column;gap:6px;padding:12px 8px;white-space:nowrap;
+    gap:5px;padding:10px 8px;white-space:nowrap;
   }
-  .side-foot .btn-organize .org-icon{font-size:30px;line-height:1;}
+  .side-foot .btn-organize .org-icon{font-size:15px;line-height:1;}
   .btn{width:100%;border:none;border-radius:10px;padding:12px;font-size:13.5px;font-weight:700;cursor:pointer;letter-spacing:.01em;display:flex;align-items:center;justify-content:center;gap:6px;transition:filter .12s ease, transform .12s ease, opacity .12s ease;}
   .btn:active{transform:scale(.98);}
   .btn-primary{background:var(--accent);color:#1c0a05;}
@@ -593,9 +596,6 @@
   .fab:hover{filter:brightness(1.2);transform:scale(1.06);}
   .fab.pressed{transform:scale(.88);}
   .fab:disabled{opacity:.35;cursor:default;filter:none;transform:none;}
-  .fab .key-hint{
-    font-size:10px;color:var(--text-lo);white-space:nowrap;letter-spacing:.04em;margin-top:4px;
-  }
 
   /* 10秒戻る（再生ボタンの右に横並び） */
   .back10-btn{
@@ -951,7 +951,7 @@
     </div>
     <div class="side-foot">
       <div class="fab-group fab-group-shutter">
-        <button class="fab" id="shutterBtn" aria-label="キャプチャ（Cキー）">📷<span class="key-hint">C キー</span></button>
+        <button class="fab" id="shutterBtn" aria-label="キャプチャ（Cキー）" title="キャプチャ（Cキー）">📷</button>
       </div>
       <button class="btn btn-organize" id="organizeBtn" disabled><span class="org-icon" aria-hidden="true">✂️</span><span class="org-label">整理する</span></button>
     </div>
