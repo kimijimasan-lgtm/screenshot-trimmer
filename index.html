@@ -245,12 +245,15 @@
     line-break:strict;text-wrap:pretty;
   }
   .settings-switch-text span{display:inline-block;}  /* 文節の途中で改行させない */
-  /* ほかの設定の説明（.settings-menu-card-desc）と同じ見た目にそろえる */
+  /* ほかの設定の説明（.settings-menu-card-desc）と同じ見た目にそろえる。
+     折り返しは文節ごとの span で手作業に区切らず、ブラウザに任せて幅いっぱいまで使う */
   .settings-switch-desc{
     font-size:12.5px;line-height:1.7;color:#6b7080;
-    line-break:strict;text-wrap:pretty;
+    line-break:strict;                 /* 行頭に句読点・閉じ括弧を置かない */
+    overflow-wrap:anywhere;            /* 未対応ブラウザでも、はみ出して崩れない */
+    word-break:auto-phrase;            /* 対応ブラウザは日本語の文節を見て折り返す */
+    text-wrap:pretty;                  /* 最終行が短くなりすぎないようにする */
   }
-  .settings-switch-desc span{display:inline-block;}  /* 文節の途中で改行させない */
   /* 案内カードの「設定を開く」から来たとき、どの項目かが分かるよう一瞬光らせる
      （クラス名は settings-flash。キャプチャの白い画面エフェクト .flash と、ぶつけないこと） */
   .settings-switch.settings-flash{animation:settingsFlash 1.5s ease-out 1;}
@@ -1039,7 +1042,7 @@
         <input type="checkbox" id="openMemoToggle" checked>
         <span class="settings-switch-body">
           <span class="settings-switch-text"><span>整理のあと、</span><span>メモを</span><span>左半分に</span><span>開く</span></span>
-          <span class="settings-switch-desc"><span>画像の整理が</span><span>終わったら、</span><span>PCスマホ連動メモ</span><span>（crossmemo.web.app）</span><span>などを、</span><span>画面の</span><span>左半分に</span><span>開きます。</span><span>メモを</span><span>使わない人は、</span><span>オフにしてください</span></span>
+          <span class="settings-switch-desc">画像の整理が終わったら、PCスマホ連動メモなどを、画面の左半分に開きます。使わない人は、オフにしてください</span>
         </span>
       </label>
     </div>
