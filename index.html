@@ -237,12 +237,20 @@
     margin-top:14px;padding:10px 12px;border:1px solid #d8dbe2;border-radius:10px;background:#f7f8fa;
   }
   .settings-switch:hover{border-color:#2c5cc5;background:#f4f7ff;}
-  .settings-switch input{margin:2px 0 0;cursor:pointer;flex-shrink:0;}
+  .settings-switch input{margin:3px 0 0;cursor:pointer;flex-shrink:0;}
+  /* 題名と説明を縦に並べる（min-width:0 で、長い語があっても折り返せるようにする） */
+  .settings-switch-body{display:flex;flex-direction:column;gap:5px;min-width:0;}
   .settings-switch-text{
-    font-size:13px;line-height:1.6;color:#1f2430;
+    font-size:13.5px;font-weight:700;line-height:1.6;color:#1f2430;
     line-break:strict;text-wrap:pretty;
   }
   .settings-switch-text span{display:inline-block;}  /* 文節の途中で改行させない */
+  /* ほかの設定の説明（.settings-menu-card-desc）と同じ見た目にそろえる */
+  .settings-switch-desc{
+    font-size:12.5px;line-height:1.7;color:#6b7080;
+    line-break:strict;text-wrap:pretty;
+  }
+  .settings-switch-desc span{display:inline-block;}  /* 文節の途中で改行させない */
   /* 案内カードの「設定を開く」から来たとき、どの項目かが分かるよう一瞬光らせる
      （クラス名は settings-flash。キャプチャの白い画面エフェクト .flash と、ぶつけないこと） */
   .settings-switch.settings-flash{animation:settingsFlash 1.5s ease-out 1;}
@@ -1029,7 +1037,10 @@
            保存用の名前は stOpenMemoOnOrganize のまま（今までの設定を引き継ぐため） -->
       <label class="settings-switch">
         <input type="checkbox" id="openMemoToggle" checked>
-        <span class="settings-switch-text"><span>全部に適用するとき、</span><span>メモを</span><span>左半分に</span><span>開く</span></span>
+        <span class="settings-switch-body">
+          <span class="settings-switch-text"><span>整理のあと、</span><span>メモを</span><span>左半分に</span><span>開く</span></span>
+          <span class="settings-switch-desc"><span>画像の整理が</span><span>終わったら、</span><span>PCスマホ連動メモ</span><span>（crossmemo.web.app）</span><span>などを、</span><span>画面の</span><span>左半分に</span><span>開きます。</span><span>メモを</span><span>使わない人は、</span><span>オフにしてください</span></span>
+        </span>
       </label>
     </div>
 
@@ -1553,8 +1564,8 @@
   ];
   // メモを使わない人へ、初回だけ出すお知らせ（カードの下に足す）
   const MEMO_FIRST_PARTS = [
-    'PCスマホ連動メモを', '使わない場合は、', '設定で、',
-    '『全部に適用するとき、', 'メモを左半分に開く』を', 'オフにしてください'
+    'メモを', '使わない場合は、', '設定の',
+    '『整理のあと、', 'メモを左半分に開く』を', 'オフにしてください'
   ];
   // 切り替えがオフの人へ、初回だけ出す案内（メモの代わり）
   const COPY_NOTICE_PARTS = [
