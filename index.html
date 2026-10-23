@@ -817,6 +817,19 @@
   .btn-summarize.flash-ok{background:#15803d;color:#fff;}
   .btn-summarize.flash-err{background:#b91c1c;color:#fff;}
 
+  /* ---------- 字幕の種類の手がかり表示(要約成功時だけ。原因調査の目印) ---------- */
+  .fab-group-transcript{position:relative;}
+  .subtitle-type-tag{
+    position:absolute;left:50%;top:100%;
+    transform:translateX(-50%) translateY(3px);
+    background:var(--panel-2);border:1px solid var(--hairline);
+    color:var(--text-lo);font-size:11px;font-weight:700;
+    padding:3px 10px;border-radius:999px;white-space:nowrap;
+    opacity:0;pointer-events:none;transition:opacity .2s ease;
+    z-index:5;
+  }
+  .subtitle-type-tag.show{opacity:1;}
+
   /* ---------- summary overlay ---------- */
   .summary-overlay{
     position:fixed;inset:0;z-index:80;
@@ -925,6 +938,7 @@
         <label><input type="radio" name="summaryMode" value="points" checked>要点まとめ</label>
         <label><input type="radio" name="summaryMode" value="detail">項目別(解説)</label>
       </div>
+      <div id="subtitleTypeTag" class="subtitle-type-tag" aria-live="polite"></div>
     </div>
 
     <div class="fab-group fab-group-bookmark">
@@ -1310,12 +1324,22 @@
   const CAPTION_HINT_KEY = 'stCaptionHintDone';
   // 「✨ 区間内の要約」ボタンの結果表示（成功・失敗）を出しておく時間（ミリ秒）
   const SUMMARIZE_FLASH_MS = 3000;
+  // 字幕の種類の手がかり表示（成功時だけ）を出しておく時間（ミリ秒）
+  const SUBTITLE_TAG_MS = 5000;
   // 要約方式ごとの設定。「項目別（解説）」は出力が長いので max_tokens と字幕の上限を別に持つ
   const SUMMARY_MODE_KEY = 'stSummaryMode';
   const SUMMARY_MODES = {
     points: { maxTokens: 2048,  maxChars: 50000 },
     detail: { maxTokens: 12000, maxChars: 15000 },
   };
+  // 字幕の種類の手がかり表示：言語コード→日本語の言葉
+  const SUBTITLE_LANG_LABELS = { ja: '日本語', en: '英語' };
+  function subtitleTypeLabel(lang, type){
+    if(!lang || !type) return null;  // 種類が不明なときは出さない
+    const langLabel = SUBTITLE_LANG_LABELS[lang] || lang.toUpperCase();
+    const typeLabel = type === 'manual' ? '手動' : (type === 'auto' ? '自動生成' : type);
+    return '字幕：' + langLabel + '（' + typeLabel + '）';
+  }
   const toast = document.getElementById('toast');
   function showToast(msg, duration){
     toast.textContent = msg;
@@ -2086,7 +2110,7 @@
     localStorage.setItem(VID_INPUT_KEY, rawVal);
     setStatus('');
     currentVideoId = id;
-    cachedTranscript = { videoId: null, text: null };
+    cachedTranscript = { videoId: null, text: null, lang: null, type: null };
     placeholder.style.display = 'none';
     if(player && player.loadVideoById){ player.loadVideoById(id); }
     resetBookmarks();  // ブックマークは動画単位（切り替えたらリセット）
@@ -2105,7 +2129,7 @@
 
   // 字幕取得サーバーの有無を判定（localhost のみ）
   let transcriptServerAvailable = false;
-  let cachedTranscript = { videoId: null, text: null };
+  let cachedTranscript = { videoId: null, text: null, lang: null, type: null };
   (async function(){
     try{
       const c = new AbortController();
@@ -2245,12 +2269,31 @@
   // ボタンの結果表示（成功・失敗）。表示中は押せない。タイマーは1本だけ持つ
   const SUMMARIZE_LABEL = summarizeBtn.textContent;
   let summarizeFlashTimer = null;
+
+  // 字幕の種類の手がかり表示（成功時だけ。原因調査の目印）
+  const subtitleTypeTagEl = document.getElementById('subtitleTypeTag');
+  let subtitleTypeTagTimer = null;
+  function hideSubtitleTypeTag(){
+    if(subtitleTypeTagTimer){ clearTimeout(subtitleTypeTagTimer); subtitleTypeTagTimer = null; }
+    if(subtitleTypeTagEl) subtitleTypeTagEl.classList.remove('show');
+  }
+  function showSubtitleTypeTag(lang, type){
+    if(!subtitleTypeTagEl) return;
+    const label = subtitleTypeLabel(lang, type);
+    if(!label) return;  // 種類が不明なときは出さない（エラーにしない）
+    subtitleTypeTagEl.textContent = label;
+    subtitleTypeTagEl.classList.add('show');
+    if(subtitleTypeTagTimer) clearTimeout(subtitleTypeTagTimer);
+    subtitleTypeTagTimer = setTimeout(hideSubtitleTypeTag, SUBTITLE_TAG_MS);
+  }
+
   function clearSummarizeFlash(){
     if(summarizeFlashTimer){ clearTimeout(summarizeFlashTimer); summarizeFlashTimer = null; }
     if(summarizeBtn.classList.contains('flash-ok') || summarizeBtn.classList.contains('flash-err')){
       summarizeBtn.classList.remove('flash-ok', 'flash-err');
       if(!summarizing) summarizeBtn.textContent = SUMMARIZE_LABEL;
     }
+    hideSubtitleTypeTag();  // ボタンの表示が戻るときは、字幕の種類表示も一緒に消す
     if(typeof updateSummarizeBtn === 'function') updateSummarizeBtn();
   }
   function flashSummarizeBtn(ok, label){
@@ -3378,7 +3421,7 @@
           const res = await fetch('/api/transcript?v=' + encodeURIComponent(currentVideoId));
           const data = await res.json();
           if(data.error){ showToast(data.error, 6000); return; }
-          cachedTranscript = { videoId: currentVideoId, text: data.transcript };
+          cachedTranscript = { videoId: currentVideoId, text: data.transcript, lang: data.lang, type: data.type };
         }catch(e){
           showToast(SUB_FAIL_MSG, 6000);
           return;
@@ -3417,7 +3460,10 @@
       summarizing = false;
       summarizeBtn.textContent = origLabel;
       updateSummarizeBtn();
-      if(outcome === 'ok') flashSummarizeBtn(true, '✓ クリップボードに入りました');
+      if(outcome === 'ok'){
+        flashSummarizeBtn(true, '✓ クリップボードに入りました');
+        showSubtitleTypeTag(cachedTranscript.lang, cachedTranscript.type);  // 字幕の種類の手がかり
+      }
       else if(outcome === 'copyFail') flashSummarizeBtn(false, '✕ コピーできませんでした');
       else flashSummarizeBtn(false, '✕ 失敗しました');
     }
