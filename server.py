@@ -117,17 +117,27 @@ def run_ytdlp(args, timeout, cwd=None):
                           cwd=cwd, creationflags=CREATE_NO_WINDOW)
 
 
-def find_best_subtitle(video_id, tmpdir):
+# 字幕の種類ごとの yt-dlp の指定
+SUB_FLAGS = {'manual': ['--write-sub'], 'auto': ['--write-auto-sub']}
+DEFAULT_PREFER = 'auto'   # 既定は自動生成を優先（手動字幕は動画とずれていることがあるため）
+
+
+def subtitle_order(prefer):
+    """字幕を探す順番を返す。prefer の種類を、言語ごとに先に試す。
+    日本語を2種類とも試してから、英語に移る。
+    """
+    other = 'manual' if prefer == 'auto' else 'auto'
+    return [(prefer, 'ja'), (other, 'ja'), (prefer, 'en'), (other, 'en')]
+
+
+def find_best_subtitle(video_id, tmpdir, prefer=DEFAULT_PREFER):
     """字幕を優先順位に従って取得する。
-    日本語手動 → 日本語自動 → 英語手動 → 英語自動
+    prefer='auto'（既定）: 日本語の自動生成 → 日本語の手動 → 英語の自動生成 → 英語の手動
+    prefer='manual'      : 日本語の手動 → 日本語の自動生成 → 英語の手動 → 英語の自動生成
+    指定した種類が無いときは、もう一方の種類を使う（上の順番のとおり）。
     """
     url = f'https://www.youtube.com/watch?v={video_id}'
-    strategies = [
-        (['--write-sub'], 'ja', 'manual'),
-        (['--write-auto-sub'], 'ja', 'auto'),
-        (['--write-sub'], 'en', 'manual'),
-        (['--write-auto-sub'], 'en', 'auto'),
-    ]
+    strategies = [(SUB_FLAGS[t], lang, t) for t, lang in subtitle_order(prefer)]
 
     for flags, lang, sub_type in strategies:
         out_path = os.path.join(tmpdir, 'sub')
@@ -362,8 +372,14 @@ class Handler(http.server.SimpleHTTPRequestHandler):
             self.send_json({'error': MSG_SUB_FAIL}, 500)
             return
 
+        # prefer=auto（既定）/ manual。変な値が来たら既定に倒す
+        prefer = params.get('prefer', [DEFAULT_PREFER])[0]
+        if prefer not in SUB_FLAGS:
+            prefer = DEFAULT_PREFER
+
         with tempfile.TemporaryDirectory() as tmpdir:
-            transcript, lang, sub_type = find_best_subtitle(video_id, tmpdir)
+            transcript, lang, sub_type = find_best_subtitle(
+                video_id, tmpdir, prefer)
 
         if not transcript:
             self.send_json(

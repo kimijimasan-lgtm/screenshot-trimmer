@@ -173,6 +173,14 @@
     background:#e8a030;color:#1c0a05;font-weight:700;font-size:12px;cursor:pointer;white-space:nowrap;
   }
   .bm-actions button:hover{filter:brightness(1.06);}
+  /* 🗑 時刻をクリア：控えめな灰色の枠。チェックも時刻も無いときは押せない。
+     右パネルの高さを増やしすぎないよう、ほかのボタンより低くする（文字は切らない） */
+  .bm-actions button.bm-clear{
+    background:transparent;border:1px solid var(--hairline);
+    color:var(--text-lo);font-size:11px;padding:4px 4px;
+  }
+  .bm-actions button.bm-clear:hover:not([disabled]){background:rgba(255,255,255,.06);color:var(--text-hi);filter:none;}
+  .bm-actions button.bm-clear[disabled]{opacity:.35;cursor:default;}
   .share-status{font-size:11px;color:var(--accent-2);display:none;align-items:center;gap:6px;white-space:nowrap;}
   .share-status.on{display:flex;}
   .share-status .dot{width:7px;height:7px;border-radius:50%;background:var(--accent-2);animation:blink 1.4s infinite;}
@@ -830,6 +838,17 @@
   }
   .subtitle-type-tag.show{opacity:1;}
 
+  /* ---------- 🔁 別の字幕でやり直す（要約が成功したあと、押せる状態で出し続ける） ---------- */
+  .btn-retry-sub{
+    width:100%;padding:5px 6px;border-radius:8px;
+    border:1px solid rgba(124,92,252,.55);background:rgba(124,92,252,.16);
+    color:#cfc4ff;font-weight:700;font-size:11.5px;line-height:1.25;
+    cursor:pointer;white-space:normal;text-wrap:balance;line-break:strict;
+    transition:filter .12s ease,opacity .12s ease;
+  }
+  .btn-retry-sub:hover:not([disabled]){filter:brightness(1.3);}
+  .btn-retry-sub[disabled]{opacity:.45;cursor:default;}
+
   /* ---------- summary overlay ---------- */
   .summary-overlay{
     position:fixed;inset:0;z-index:80;
@@ -938,6 +957,7 @@
         <label><input type="radio" name="summaryMode" value="points" checked>要点まとめ</label>
         <label><input type="radio" name="summaryMode" value="detail">項目別(解説)</label>
       </div>
+      <button id="retrySubBtn" class="btn-retry-sub" hidden title="直前と同じ区間を、もう一方の種類の字幕（自動生成↔手動）で、要約し直します">🔁 別の字幕でやり直す</button>
       <div id="subtitleTypeTag" class="subtitle-type-tag" aria-live="polite"></div>
     </div>
 
@@ -951,6 +971,9 @@
       </div>
       <div class="bm-actions">
         <button id="bmChapterBtn" title="動画のチャプター一覧を開きます（start.bat から開いた画面で使えます）">📑 チャプター</button>
+      </div>
+      <div class="bm-actions">
+        <button id="bmClearBtn" class="bm-clear" title="チェックと、取得した3つの時刻を、すべて消します" disabled>🗑 時刻をクリア</button>
       </div>
     </div>
 
@@ -1332,6 +1355,8 @@
     points: { maxTokens: 2048,  maxChars: 50000 },
     detail: { maxTokens: 12000, maxChars: 15000 },
   };
+  // 字幕の種類の初期値。自動生成を優先する（手動字幕は動画とずれていることがあるため）
+  const SUMMARY_PREFER_DEFAULT = 'auto';
   // 字幕の種類の手がかり表示：言語コード→日本語の言葉
   const SUBTITLE_LANG_LABELS = { ja: '日本語', en: '英語' };
   function subtitleTypeLabel(lang, type){
@@ -2110,7 +2135,7 @@
     localStorage.setItem(VID_INPUT_KEY, rawVal);
     setStatus('');
     currentVideoId = id;
-    cachedTranscript = { videoId: null, text: null, lang: null, type: null };
+    transcriptCache = { videoId: null, byType: {} };
     placeholder.style.display = 'none';
     if(player && player.loadVideoById){ player.loadVideoById(id); }
     resetBookmarks();  // ブックマークは動画単位（切り替えたらリセット）
@@ -2129,7 +2154,9 @@
 
   // 字幕取得サーバーの有無を判定（localhost のみ）
   let transcriptServerAvailable = false;
-  let cachedTranscript = { videoId: null, text: null, lang: null, type: null };
+  // 字幕のキャッシュ：動画ID＋種類（auto／manual）で分けて覚える。
+  // 同じ動画で2つの種類を行き来しても取り直さない。動画を切り替えたら消える
+  let transcriptCache = { videoId: null, byType: {} };
   (async function(){
     try{
       const c = new AbortController();
@@ -2218,18 +2245,27 @@
 
   const bmTimeEls = Array.from(document.querySelectorAll('.bm-time'));
   const bmChecks = Array.from(document.querySelectorAll('.bm-check'));
+  const bmClearBtn = document.getElementById('bmClearBtn');
   const bmTimes = new Array(bmTimeEls.length).fill(null);
   let bmNext = 0;  // 次に「取得」で書き込む枠（0→4を巡回）
+
+  // 「🗑 時刻をクリア」：チェックも時刻も1つも無いときは押せない
+  function updateClearBtn(){
+    const any = bmTimes.some(t=>t !== null) || bmChecks.some(c=>c.checked);
+    bmClearBtn.disabled = !any;
+  }
 
   function renderBookmarks(){
     bmTimes.forEach((t, i)=>{
       bmTimeEls[i].textContent = t === null ? '--:--' : fmtTime(t);
       bmTimeEls[i].classList.toggle('empty', t === null);
     });
+    updateClearBtn();
   }
 
   function resetBookmarks(){
     if(typeof clearSummarizeFlash === 'function') clearSummarizeFlash();
+    if(typeof clearSummaryHints === 'function') clearSummaryHints();
     bmTimes.fill(null);
     bmNext = 0;
     bmChecks.forEach(c=>{ c.checked = false; });
@@ -2237,6 +2273,11 @@
     renderBookmarks();
     if(typeof updateSummarizeBtn === 'function') updateSummarizeBtn();
   }
+
+  bmClearBtn.addEventListener('click', ()=>{
+    resetBookmarks();
+    showToast('時刻とチェックをクリアしました');
+  });
 
   document.getElementById('bmCaptureBtn').addEventListener('click', ()=>{
     const ap = getActivePlayer();
@@ -2287,13 +2328,25 @@
     subtitleTypeTagTimer = setTimeout(hideSubtitleTypeTag, SUBTITLE_TAG_MS);
   }
 
+  // 「🔁 別の字幕でやり直す」ボタンと、直前の要約の覚え書き（範囲・方式・使った字幕の種類）
+  const retrySubBtn = document.getElementById('retrySubBtn');
+  let lastSummary = null;
+  function showRetrySub(){ retrySubBtn.hidden = false; retrySubBtn.disabled = false; }
+  function hideRetrySub(){ retrySubBtn.hidden = true; retrySubBtn.disabled = false; lastSummary = null; }
+  // 要約の結果まわりの表示（字幕の種類・やり直し）を、まとめて消す
+  function clearSummaryHints(){
+    hideSubtitleTypeTag();
+    hideRetrySub();
+  }
+
+  // ボタンの色と文字を元に戻す。字幕の種類の表示は、ここでは消さない
+  // （種類の表示は約5秒、やり直しボタンは押すまで残すため、寿命を分けている）
   function clearSummarizeFlash(){
     if(summarizeFlashTimer){ clearTimeout(summarizeFlashTimer); summarizeFlashTimer = null; }
     if(summarizeBtn.classList.contains('flash-ok') || summarizeBtn.classList.contains('flash-err')){
       summarizeBtn.classList.remove('flash-ok', 'flash-err');
       if(!summarizing) summarizeBtn.textContent = SUMMARIZE_LABEL;
     }
-    hideSubtitleTypeTag();  // ボタンの表示が戻るときは、字幕の種類表示も一緒に消す
     if(typeof updateSummarizeBtn === 'function') updateSummarizeBtn();
   }
   function flashSummarizeBtn(ok, label){
@@ -2322,7 +2375,9 @@
       bmChecks[oldest].checked = false;
     }
     if(bmCheckOrder.length === 2 && summarizeFlashTimer) clearSummarizeFlash();  // チェックが2つ揃ったら表示を待たず戻す
+    clearSummaryHints();  // 範囲が変わると、やり直しの意味も変わるので消す
     updateSummarizeBtn();
+    updateClearBtn();
   }
 
   bmChecks.forEach((cb, i)=>{
@@ -2331,7 +2386,9 @@
         checkBookmark(i);
       }else{
         bmCheckOrder = bmCheckOrder.filter(idx=>idx !== i);
+        clearSummaryHints();  // 範囲が変わるので、やり直しは消す
         updateSummarizeBtn();
+        updateClearBtn();
       }
     });
   });
@@ -3374,7 +3431,104 @@
     try{ localStorage.setItem(SUMMARY_MODE_KEY, summaryModeValue()); }catch(e){}
   }));
 
-  summarizeBtn.addEventListener('click', async ()=>{
+  // 字幕を取る。prefer は 'auto'（自動生成を優先）か 'manual'（手動を優先）。
+  // 同じ動画の同じ種類は取り直さない。実際に返ってきた種類でも覚えるので、
+  // 「もう一方が無くて同じ種類が返った」ときも、次は取り直さずに済む
+  async function fetchTranscript(videoId, prefer){
+    if(transcriptCache.videoId !== videoId) transcriptCache = { videoId: videoId, byType: {} };
+    const hit = transcriptCache.byType[prefer];
+    if(hit) return hit;
+    let data;
+    try{
+      const res = await fetch('/api/transcript?v=' + encodeURIComponent(videoId) + '&prefer=' + prefer);
+      data = await res.json();
+    }catch(e){
+      return { error: SUB_FAIL_MSG };
+    }
+    if(data.error) return { error: data.error };
+    const entry = { text: data.transcript, lang: data.lang, type: data.type };
+    transcriptCache.byType[prefer] = entry;
+    if(data.type) transcriptCache.byType[data.type] = entry;  // 返ってきた種類でも覚える
+    return entry;
+  }
+
+  // 要約の本体。「✨ 区間内の要約」と「🔁 別の字幕でやり直す」で共用する。
+  // requireDifferentFrom を渡すと、その種類がまた返ってきたときは「別の種類が無い」と案内して終わる
+  async function runSummarize(startSec, endSec, mode, prefer, requireDifferentFrom){
+    if(summarizing) return;
+    summarizing = true;
+    summarizeBtn.disabled = true;
+    retrySubBtn.disabled = true;     // やり直し中の連打を防ぐ
+    hideSubtitleTypeTag();
+    clearSummarizeFlash();
+    // 押した瞬間に動画を一時停止（失敗しても再開はしない）
+    try{ getActivePlayer().pause(); }catch(e){}
+    const origLabel = SUMMARIZE_LABEL;
+    let outcome = 'fail';  // 'ok' | 'copyFail' | 'noOther' | 'fail'
+    let used = null;
+    setStatus('');
+
+    try{
+      summarizeBtn.textContent = '字幕を取得中…';
+      const sub = await fetchTranscript(currentVideoId, prefer);
+      if(sub.error){ showToast(sub.error, 6000); return; }
+      if(requireDifferentFrom && sub.type === requireDifferentFrom){
+        showToast('この動画には、別の種類の字幕が、ありません', 4000);
+        outcome = 'noOther';
+        return;
+      }
+      used = sub;
+
+      const extracted = extractTranscriptRange(sub.text, startSec, endSec);
+      if(!extracted){
+        showToast('指定した範囲（' + fmtTime(startSec) + '〜' + fmtTime(endSec) + '）に字幕がありませんでした');
+        return;
+      }
+      const maxChars = SUMMARY_MODES[mode].maxChars;
+      if(extracted.length > maxChars){
+        showToast('字幕が長すぎます（' + maxChars.toLocaleString() + '文字超）。範囲を狭めてください');
+        return;
+      }
+
+      summarizeBtn.textContent = '要約中…';
+      const { text: summary, truncated } = await callClaudeForSummary(extracted, startSec, endSec, mode);
+      let autoCopied = false;
+      try{ await navigator.clipboard.writeText(summary); autoCopied = true; }catch(e){}
+      if(autoCopied){
+        showToast(truncated ? '長すぎて、途中までになりました（取れた分はコピーしました）。区間を短くして、もう一度お試しください' : '要約をコピーしました', truncated ? 6000 : undefined);
+        // チェックと時刻は残す（「🗑 時刻をクリア」を押すまで、範囲をそのままにする）
+        lastSummary = { startSec: startSec, endSec: endSec, mode: mode, type: sub.type, lang: sub.lang };
+        outcome = 'ok';
+      }else{
+        // コピー失敗時だけ結果画面を出して手でコピーできるようにする
+        summaryTextEl.textContent = summary;
+        summaryNotice.classList.add('show');
+        summaryOverlay.classList.add('show');
+        outcome = 'copyFail';
+      }
+    }catch(err){
+      setStatus(err.message, true);
+    }finally{
+      summarizing = false;
+      summarizeBtn.textContent = origLabel;
+      updateSummarizeBtn();
+      if(outcome === 'ok'){
+        flashSummarizeBtn(true, '✓ クリップボードに入りました');
+        showSubtitleTypeTag(used.lang, used.type);  // 字幕の種類の手がかり（約5秒）
+        showRetrySub();                            // 押すまで出し続ける
+      }else if(outcome === 'copyFail'){
+        flashSummarizeBtn(false, '✕ コピーできませんでした');
+      }else if(outcome === 'noOther'){
+        // 別の種類が無かっただけ。やり直しボタンはそのまま残して、また押せるようにする
+        if(!retrySubBtn.hidden) retrySubBtn.disabled = false;
+      }else{
+        flashSummarizeBtn(false, '✕ 失敗しました');
+        if(!retrySubBtn.hidden) retrySubBtn.disabled = false;
+      }
+    }
+  }
+
+  summarizeBtn.addEventListener('click', ()=>{
     if(summarizing) return;
     if(currentMode === 'local'){
       showToast('YouTube動画を読み込んでください');
@@ -3403,70 +3557,17 @@
       showToast(SERVER_ONLY_MSG, 5000);
       return;
     }
+    hideRetrySub();  // 新しい要約を始めるので、前回のやり直しは消す
+    runSummarize(Math.min(times[0], times[1]), Math.max(times[0], times[1]),
+                 summaryModeValue(), SUMMARY_PREFER_DEFAULT);
+  });
 
-    const startSec = Math.min(times[0], times[1]);
-    const endSec = Math.max(times[0], times[1]);
-    // 押した瞬間に動画を一時停止（失敗しても再開はしない）
-    try{ getActivePlayer().pause(); }catch(e){}
-    summarizing = true;
-    summarizeBtn.disabled = true;
-    const origLabel = SUMMARIZE_LABEL;
-    let outcome = 'fail';  // 'ok' | 'copyFail' | 'fail'（ボタンの結果表示用）
-    setStatus('');
-
-    try{
-      if(cachedTranscript.videoId !== currentVideoId){
-        summarizeBtn.textContent = '字幕を取得中…';
-        try{
-          const res = await fetch('/api/transcript?v=' + encodeURIComponent(currentVideoId));
-          const data = await res.json();
-          if(data.error){ showToast(data.error, 6000); return; }
-          cachedTranscript = { videoId: currentVideoId, text: data.transcript, lang: data.lang, type: data.type };
-        }catch(e){
-          showToast(SUB_FAIL_MSG, 6000);
-          return;
-        }
-      }
-
-      const extracted = extractTranscriptRange(cachedTranscript.text, startSec, endSec);
-      if(!extracted){
-        showToast('指定した範囲（' + fmtTime(startSec) + '〜' + fmtTime(endSec) + '）に字幕がありませんでした');
-        return;
-      }
-      const maxChars = SUMMARY_MODES[summaryModeValue()].maxChars;
-      if(extracted.length > maxChars){
-        showToast('字幕が長すぎます（' + maxChars.toLocaleString() + '文字超）。範囲を狭めてください');
-        return;
-      }
-
-      summarizeBtn.textContent = '要約中…';
-      const { text: summary, truncated } = await callClaudeForSummary(extracted, startSec, endSec, summaryModeValue());
-      let autoCopied = false;
-      try{ await navigator.clipboard.writeText(summary); autoCopied = true; }catch(e){}
-      if(autoCopied){
-        showToast(truncated ? '長すぎて、途中までになりました（取れた分はコピーしました）。区間を短くして、もう一度お試しください' : '要約をコピーしました', truncated ? 6000 : undefined);
-        resetBookmarks();  // 取得した時刻3枠とチェックをクリア（成功時のみ）
-        outcome = 'ok';
-      }else{
-        // コピー失敗時だけ結果画面を出して手でコピーできるようにする（チェック・時刻は残す）
-        summaryTextEl.textContent = summary;
-        summaryNotice.classList.add('show');
-        summaryOverlay.classList.add('show');
-        outcome = 'copyFail';
-      }
-    }catch(err){
-      setStatus(err.message, true);
-    }finally{
-      summarizing = false;
-      summarizeBtn.textContent = origLabel;
-      updateSummarizeBtn();
-      if(outcome === 'ok'){
-        flashSummarizeBtn(true, '✓ クリップボードに入りました');
-        showSubtitleTypeTag(cachedTranscript.lang, cachedTranscript.type);  // 字幕の種類の手がかり
-      }
-      else if(outcome === 'copyFail') flashSummarizeBtn(false, '✕ コピーできませんでした');
-      else flashSummarizeBtn(false, '✕ 失敗しました');
-    }
+  // 🔁 別の字幕でやり直す：直前と同じ範囲・方式のまま、もう一方の種類の字幕で取り直す
+  retrySubBtn.addEventListener('click', ()=>{
+    if(summarizing || !lastSummary) return;
+    const prev = lastSummary;
+    const want = prev.type === 'auto' ? 'manual' : 'auto';
+    runSummarize(prev.startSec, prev.endSec, prev.mode, want, prev.type);
   });
 
   // summary overlay handlers
@@ -3508,6 +3609,7 @@
   document.getElementById('summaryCloseBtn').addEventListener('click', closeSummary);
 
   updateSummarizeBtn();
+  updateClearBtn();
 })();
 </script>
 </body>
