@@ -605,15 +605,16 @@
   .fab.pressed{transform:scale(.88);}
   .fab:disabled{opacity:.35;cursor:default;filter:none;transform:none;}
 
-  /* 10秒戻る（再生ボタンの右に横並び） */
-  .back10-btn{
+  /* 10秒進む・10秒戻る（再生ボタンの右に縦2段。大きさは同じ） */
+  .skip-col{display:flex;flex-direction:column;gap:6px;flex:1;min-width:0;}
+  .skip10-btn{
     height:48px;padding:0 10px;border-radius:999px;border:2px solid var(--hairline);
     background:var(--panel-2);color:var(--text-hi);font-size:11.5px;font-weight:700;cursor:pointer;
     white-space:nowrap;flex:0 0 auto;display:flex;align-items:center;justify-content:center;
     transition:filter .12s ease, transform .12s ease;
   }
-  .back10-btn:hover{filter:brightness(1.15);border-color:var(--accent-2);}
-  .back10-btn:active{transform:scale(.94);}
+  .skip10-btn:hover{filter:brightness(1.15);border-color:var(--accent-2);}
+  .skip10-btn:active{transform:scale(.94);}
 
   /* 1コマ/5コマ 戻る・進む（10秒戻るとカメラの間、2段×横並び） */
   /* 左列（戻る）・右列（進む）を別カラムにして、各列内で縦のx座標を独立して揃える */
@@ -718,7 +719,14 @@
   .rev-confirm-box .rev-confirm-cancel:hover{color:var(--text-hi);border-color:#4a4d59;}
   .rev-confirm-box .rev-confirm-delete{background:#dc2626;color:#fff;}
   .rev-confirm-box .rev-confirm-delete:hover{filter:brightness(1.12);}
-  .rev-progress{padding:0 20px 10px;color:var(--text-lo);font-size:12px;display:flex;justify-content:space-between;background:var(--ink);}
+  .rev-progress{padding:0 20px 10px;color:var(--text-lo);font-size:12px;display:flex;align-items:center;justify-content:space-between;background:var(--ink);}
+  .rev-select-all{
+    padding:3px 10px;border-radius:6px;border:1px solid var(--hairline);
+    background:var(--panel-2);color:var(--text-lo);font-size:11px;font-weight:700;
+    cursor:pointer;white-space:nowrap;font-family:inherit;
+    transition:color .12s ease, border-color .12s ease;
+  }
+  .rev-select-all:hover{color:var(--text-hi);border-color:#4a4d59;}
 
   .toast{
     position:fixed;left:50%;bottom:24px;transform:translateX(-50%) translateY(8px);
@@ -849,6 +857,16 @@
   .btn-retry-sub:hover:not([disabled]){filter:brightness(1.3);}
   .btn-retry-sub[disabled]{opacity:.45;cursor:default;}
 
+  /* ---------- 📝 メモを開く（要約が成功したあと、やり直しの近くに出す） ---------- */
+  .btn-open-memo{
+    width:100%;padding:5px 6px;border-radius:8px;
+    border:1px solid rgba(31,184,171,.55);background:rgba(31,184,171,.16);
+    color:#b0f0e8;font-weight:700;font-size:11.5px;line-height:1.25;
+    cursor:pointer;white-space:nowrap;
+    transition:filter .12s ease;
+  }
+  .btn-open-memo:hover{filter:brightness(1.3);}
+
   /* ---------- summary overlay ---------- */
   .summary-overlay{
     position:fixed;inset:0;z-index:80;
@@ -958,6 +976,7 @@
         <label><input type="radio" name="summaryMode" value="detail">項目別(解説)</label>
       </div>
       <button id="retrySubBtn" class="btn-retry-sub" hidden title="直前と同じ区間を、もう一方の種類の字幕（自動生成↔手動）で、要約し直します">🔁 別の字幕でやり直す</button>
+      <button id="openMemoBtn" class="btn-open-memo" hidden title="PCスマホ連動メモを画面の左半分に開きます">📝 メモを開く</button>
       <div id="subtitleTypeTag" class="subtitle-type-tag" aria-live="polite"></div>
     </div>
 
@@ -980,7 +999,10 @@
     <div class="fab-group fab-group-playback">
       <div class="playback-controls">
         <button class="ctrl-btn" id="playPauseBtn" aria-label="再生">▶</button>
-        <button class="back10-btn" id="back10Btn" aria-label="10秒戻る">⏪ 10秒戻る</button>
+        <div class="skip-col">
+          <button class="skip10-btn" id="fwd10Btn" aria-label="10秒進む">10秒進む ⏩</button>
+          <button class="skip10-btn" id="back10Btn" aria-label="10秒戻る">⏪ 10秒戻る</button>
+        </div>
       </div>
       <div class="frame-controls">
         <div class="frame-col">
@@ -1061,7 +1083,7 @@
     <span class="prev-hint">ホイールで前後に切替 ／ この画像をドラッグして他アプリへ貼り付け</span>
   </div>
   <div class="rev-grid" id="revGrid"></div>
-  <div class="rev-progress mono"><span id="revProgressLabel">0 / 0 完了</span><span id="revSizeLabel"></span></div>
+  <div class="rev-progress mono"><span id="revProgressLabel">0 / 0 完了</span><button class="rev-select-all" id="revSelectAll">☑ 全部選ぶ</button><span id="revSizeLabel"></span></div>
   <div class="ov-foot">
     <button class="btn btn-ghost" id="revRedo">やり直す</button>
     <button class="btn btn-danger" id="revBulkDelete" disabled>🗑 一括削除</button>
@@ -1695,21 +1717,15 @@
   });
 
   let memoWin = null;
-  // 「この範囲を全部に適用 →」のクリックの直後に、同期的に呼ぶこと
-  //（時間のかかる処理のあとに呼ぶと、ポップアップがブロックされる）
-  function openMemoHalf(){
-    if(!getOpenMemoOnOrganize()){
-      // オフの人には、メモの代わりに、画像の渡し方を初回だけ案内する
-      if(takeOnce(COPY_NOTICE_SHOWN_KEY)) showMemoNotice(COPY_NOTICE_PARTS);
-      return;
-    }
-    if(memoWin && !memoWin.closed){          // すでに開いていれば、開き直さず前に出す
+  // メモを開く（または前に出す）共通処理。複数の場所から呼ぶ。
+  // 戻り値: 'focused'（すでに開いていて前に出した）/ 'opened'（新しく開いた）/
+  //         'blocked'（ポップアップブロック）/ null（判定できなかった）
+  function openOrFocusMemo(){
+    if(memoWin && !memoWin.closed){
       try{ memoWin.focus(); }catch(_){}
-      refocusSelf();                         // フォーカスは、こちら（スクショトリマー）に戻す
-      showMemoNotice(MEMO_OPENED_PARTS, takeOnce(MEMO_NOTICE_SHOWN_KEY) ? MEMO_FIRST_PARTS : null);
-      return;
+      refocusSelf();
+      return 'focused';
     }
-    // スクショトリマーのウィンドウがあるモニターの作業領域（screen は今いるモニターを返す）
     const s = window.screen || {};
     const left = Math.round(typeof s.availLeft === 'number' ? s.availLeft : 0);
     const top  = Math.round(typeof s.availTop  === 'number' ? s.availTop  : 0);
@@ -1719,16 +1735,30 @@
     const feats = 'popup=yes,left='+left+',top='+top+',width='+width+',height='+availH;
     let win = null;
     try{ win = window.open(MEMO_URL, MEMO_WIN_NAME, feats); }catch(_){ win = null; }
-    if(!win){
-      showMemoNotice(MEMO_BLOCKED_PARTS);
-      return;                                 // 整理の処理は止めない（呼び出し側で続行）
-    }
+    if(!win) return 'blocked';
     memoWin = win;
-    // ブラウザの枠の分だけ、ぴったり半分にならないことがあるので、できる範囲で寄せ直す
-    // （別ドメインのウィンドウなので、失敗することがある。そのときは開いたままにする）
     try{ win.moveTo(left, top); }catch(_){}
     try{ win.resizeTo(width, availH); }catch(_){}
-    refocusSelf();                            // フォーカスは、こちら（スクショトリマー）に戻す
+    refocusSelf();
+    return 'opened';
+  }
+
+  // 「この範囲を全部に適用 →」のクリックの直後に、同期的に呼ぶこと
+  //（時間のかかる処理のあとに呼ぶと、ポップアップがブロックされる）
+  function openMemoHalf(){
+    if(!getOpenMemoOnOrganize()){
+      if(takeOnce(COPY_NOTICE_SHOWN_KEY)) showMemoNotice(COPY_NOTICE_PARTS);
+      return;
+    }
+    const result = openOrFocusMemo();
+    if(result === 'focused'){
+      // すでに開いていたので、黄色い案内カードは出さない（初回のお知らせも同じ）
+      return;
+    }
+    if(result === 'blocked'){
+      showMemoNotice(MEMO_BLOCKED_PARTS);
+      return;
+    }
     showMemoNotice(MEMO_OPENED_PARTS, takeOnce(MEMO_NOTICE_SHOWN_KEY) ? MEMO_FIRST_PARTS : null);
   }
 
@@ -2333,10 +2363,26 @@
   let lastSummary = null;
   function showRetrySub(){ retrySubBtn.hidden = false; retrySubBtn.disabled = false; }
   function hideRetrySub(){ retrySubBtn.hidden = true; retrySubBtn.disabled = false; lastSummary = null; }
-  // 要約の結果まわりの表示（字幕の種類・やり直し）を、まとめて消す
+
+  // 「📝 メモを開く」ボタン（要約成功後に出す。設定のオン・オフにかかわらず出す）
+  const openMemoBtn = document.getElementById('openMemoBtn');
+  function showOpenMemoBtn(){ openMemoBtn.hidden = false; }
+  function hideOpenMemoBtn(){ openMemoBtn.hidden = true; }
+  openMemoBtn.addEventListener('click', ()=>{
+    const result = openOrFocusMemo();
+    if(result === 'blocked'){
+      showMemoNotice(MEMO_BLOCKED_PARTS);
+    }else if(result === 'opened'){
+      showMemoNotice(MEMO_OPENED_PARTS, takeOnce(MEMO_NOTICE_SHOWN_KEY) ? MEMO_FIRST_PARTS : null);
+    }
+    // 'focused'（すでに開いていた）のときは案内を出さない
+  });
+
+  // 要約の結果まわりの表示（字幕の種類・やり直し・メモを開く）を、まとめて消す
   function clearSummaryHints(){
     hideSubtitleTypeTag();
     hideRetrySub();
+    hideOpenMemoBtn();
   }
 
   // ボタンの色と文字を元に戻す。字幕の種類の表示は、ここでは消さない
@@ -2722,6 +2768,12 @@
     const t = ap.currentTime() + FRAME_DURATION * frames;
     ap.seekTo(Math.min(dur || Infinity, Math.max(0, t)));
   }
+  document.getElementById('fwd10Btn').addEventListener('click', ()=>{
+    const ap = getActivePlayer();
+    if(!ap.ready()) return;
+    const dur = ap.duration();
+    ap.seekTo(Math.min(dur || Infinity, ap.currentTime() + 10));
+  });
   document.getElementById('back10Btn').addEventListener('click', ()=>{
     const ap = getActivePlayer();
     if(!ap.ready()) return;
@@ -3138,13 +3190,28 @@
     });
   }
 
+  const revSelectAll = document.getElementById('revSelectAll');
+
   function updateRevCheckUI(){
     revGrid.querySelectorAll('.rev-item').forEach(el=>{
       el.classList.toggle('checked', revChecked.has(Number(el.dataset.i)));
     });
     revPreviewCheck.classList.toggle('on', revChecked.has(revSelected));
     revBulkDelete.disabled = revChecked.size === 0;
+    const allChecked = croppedShots.length > 0 && revChecked.size === croppedShots.length;
+    revSelectAll.textContent = allChecked ? '☐ 全部外す' : '☑ 全部選ぶ';
   }
+
+  revSelectAll.addEventListener('click', ()=>{
+    if(!croppedShots.length) return;
+    const allChecked = revChecked.size === croppedShots.length;
+    if(allChecked){
+      revChecked = new Set();
+    }else{
+      revChecked = new Set(croppedShots.map((_,i) => i));
+    }
+    updateRevCheckUI();
+  });
 
   function toggleRevCheck(i){
     if(revChecked.has(i)) revChecked.delete(i); else revChecked.add(i);
@@ -3516,6 +3583,7 @@
         flashSummarizeBtn(true, '✓ クリップボードに入りました');
         showSubtitleTypeTag(used.lang, used.type);  // 字幕の種類の手がかり（約5秒）
         showRetrySub();                            // 押すまで出し続ける
+        showOpenMemoBtn();                         // メモを開くボタンも出す
       }else if(outcome === 'copyFail'){
         flashSummarizeBtn(false, '✕ コピーできませんでした');
       }else if(outcome === 'noOther'){
@@ -3558,6 +3626,7 @@
       return;
     }
     hideRetrySub();  // 新しい要約を始めるので、前回のやり直しは消す
+    hideOpenMemoBtn();
     runSummarize(Math.min(times[0], times[1]), Math.max(times[0], times[1]),
                  summaryModeValue(), SUMMARY_PREFER_DEFAULT);
   });
