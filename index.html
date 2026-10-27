@@ -867,6 +867,12 @@
   }
   .btn-open-memo:hover{filter:brightness(1.3);}
 
+  /* 🔁／📝 の入れ物。960px以上では display:contents で「無いもの」として扱い、
+     今までどおり .fab-group-transcript の縦並びの子として、1つずつ縦に並ぶ（見た目は不変）。
+     短い名前はハーフ幅のときだけ使う */
+  .sub-actions{display:contents;}
+  .btn-retry-sub .short,.btn-open-memo .short{display:none;}
+
   /* ---------- summary overlay ---------- */
   .summary-overlay{
     position:fixed;inset:0;z-index:80;
@@ -897,6 +903,99 @@
     font-size:12px;color:var(--text-lo);display:none;
   }
   .summary-notice.show{display:block;}
+
+  /* 時刻を記録/ジャンプ と 補助ナビを960px以上で1枚カードに見せる */
+  .fab-group-bookmark{border-bottom-left-radius:0;border-bottom-right-radius:0;border-bottom:none;padding-bottom:0;}
+  .fab-group-bookmark-aux{border-top-left-radius:0;border-top-right-radius:0;border-top:none;padding-top:7px;margin-top:-10px;}
+  /* 📌 時刻を記録：幅が足りないときだけ2行に折り返す（文節の切れ目でだけ折る） */
+  .bm-actions button .wb{display:inline-block;}
+  #bmCaptureBtn{white-space:normal;line-height:1.25;}
+
+  /* ハーフ幅のカメラ（960px以上では出さない）。
+     再生ボタン(48px)より少し大きい64pxで、赤みのアクセントをはっきりさせて目立たせる。
+     hover/active/フォーカスの作りは、ほかの .ctrl-btn と同じ（色だけカメラの赤み） */
+  .hw-shutter{
+    display:none;
+    width:64px;height:64px;font-size:30px;
+    border-color:rgba(255,93,58,.6);
+    background:rgba(255,93,58,.16);
+  }
+  .hw-shutter:hover{border-color:rgba(255,93,58,.95);}
+
+  /* ========== ハーフ幅レイアウト（959px以下） ========== */
+  @media (max-width:959px){
+    main{
+      display:grid;
+      grid-template-columns:1fr 200px;
+      grid-template-rows:1fr auto;
+    }
+    .video-col{
+      grid-column:1;grid-row:1;
+      min-width:0;
+    }
+    /* fab-area: 左は1列の縦積み（要約→時刻→補助）、右は再生まわりだけ。
+       高さは右の再生まわりだけで決まる（4行目の 1fr が余りを吸う）ので、
+       左の中身が増えても減っても、動画エリアの高さは変わらない */
+    .fab-area{
+      grid-column:1;grid-row:2;
+      flex:none;overflow:visible;
+      border-left:none;border-right:none;
+      border-top:1px solid var(--hairline);
+      display:grid;
+      grid-template-columns:1fr auto;
+      grid-template-rows:auto auto auto 1fr;
+      align-items:start;
+      padding:8px 10px;gap:6px 12px;
+    }
+    .side-pane{
+      grid-column:2;grid-row:1 / 3;
+      flex:none;width:200px;
+    }
+    .fab-area .fab-group{
+      background:none;border:none;border-radius:0;padding:0;margin:0;
+    }
+    /* 左列 1段目: 要約 */
+    .fab-group-transcript{grid-column:1;grid-row:1;}
+    /* 🔁／📝 は、アイコンと短い言葉で1行に横並び。出ていないときは場所を取らない（高さ0） */
+    .sub-actions{display:none;}
+    .sub-actions:has(> button:not([hidden])){display:flex;gap:6px;width:100%;}
+    .sub-actions > button{
+      flex:1 1 0;min-width:0;
+      padding:3px 6px;font-size:11px;white-space:nowrap;text-wrap:initial;
+    }
+    .btn-retry-sub .long,.btn-open-memo .long{display:none;}
+    .btn-retry-sub .short,.btn-open-memo .short{display:inline;}
+    /* 左列 3段目: リンク・チャプター・クリア（横並び折り返し） */
+    .fab-group-bookmark-aux{
+      grid-column:1;grid-row:3;margin-top:0;
+      flex-direction:row;flex-wrap:wrap;gap:4px;
+      align-items:stretch;
+    }
+    .fab-group-bookmark-aux .bm-actions{width:auto;flex:1 1 auto;}
+    .fab-group-bookmark-aux .bm-actions button{
+      padding:4px 4px;font-size:11px;white-space:normal;line-height:1.25;
+    }
+    /* 右列: 再生まわり（左の段数にかかわらず、ここだけが高さを決める）。
+       左に「10秒進む／10秒戻る」(縦2段)、右に「再生」(上)と「カメラ」(下) */
+    .fab-group-playback{grid-column:2;grid-row:1 / 5;margin-top:0;}
+    .playback-controls{
+      display:grid;
+      grid-template-columns:auto auto;
+      grid-template-areas:
+        "skip play"
+        "skip cam";
+      align-items:center;justify-items:center;
+      gap:6px 8px;
+    }
+    .playback-controls .skip-col{grid-area:skip;}
+    .playback-controls #playPauseBtn{grid-area:play;}
+    .playback-controls .hw-shutter{grid-area:cam;}
+    /* 左列 2段目: 時刻を記録・ジャンプ */
+    .fab-group-bookmark{grid-column:1;grid-row:2;}
+    /* ハーフ幅カメラ表示 / サイドペインのカメラ隠す */
+    .hw-shutter{display:flex;}
+    .side-foot .fab-group-shutter{display:none;}
+  }
 </style>
 </head>
 <body>
@@ -975,16 +1074,20 @@
         <label><input type="radio" name="summaryMode" value="points" checked>要点まとめ</label>
         <label><input type="radio" name="summaryMode" value="detail">項目別(解説)</label>
       </div>
-      <button id="retrySubBtn" class="btn-retry-sub" hidden title="直前と同じ区間を、もう一方の種類の字幕（自動生成↔手動）で、要約し直します">🔁 別の字幕でやり直す</button>
-      <button id="openMemoBtn" class="btn-open-memo" hidden title="PCスマホ連動メモを画面の左半分に開きます">📝 メモを開く</button>
+      <div class="sub-actions">
+        <button id="retrySubBtn" class="btn-retry-sub" hidden aria-label="別の字幕でやり直す" title="別の字幕でやり直す（直前と同じ区間を、もう一方の種類の字幕（自動生成↔手動）で、要約し直します）"><span class="long">🔁 別の字幕でやり直す</span><span class="short">🔁 やり直す</span></button>
+        <button id="openMemoBtn" class="btn-open-memo" hidden aria-label="メモを開く" title="メモを開く（PCスマホ連動メモを画面の左半分に開きます）"><span class="long">📝 メモを開く</span><span class="short">📝 メモ</span></button>
+      </div>
       <div id="subtitleTypeTag" class="subtitle-type-tag" aria-live="polite"></div>
     </div>
 
     <div class="fab-group fab-group-bookmark">
       <div class="bm-actions">
-        <button id="bmCaptureBtn">📌 取得</button>
+        <button id="bmCaptureBtn"><span class="wb">📌 時刻を</span><span class="wb">記録</span></button>
         <button id="bmJumpBtn">⏩ ジャンプ</button>
       </div>
+    </div>
+    <div class="fab-group fab-group-bookmark-aux">
       <div class="bm-actions">
         <button id="bmLinkBtn" title="チェックした2つのタイムスタンプから、区間つきの再生リンクを作ってコピーします">🔗 区間リンクをコピー</button>
       </div>
@@ -992,7 +1095,7 @@
         <button id="bmChapterBtn" title="動画のチャプター一覧を開きます（start.bat から開いた画面で使えます）">📑 チャプター</button>
       </div>
       <div class="bm-actions">
-        <button id="bmClearBtn" class="bm-clear" title="チェックと、取得した3つの時刻を、すべて消します" disabled>🗑 時刻をクリア</button>
+        <button id="bmClearBtn" class="bm-clear" title="チェックと、記録した3つの時刻を、すべて消します" disabled>🗑 時刻をクリア</button>
       </div>
     </div>
 
@@ -1003,6 +1106,7 @@
           <button class="skip10-btn" id="fwd10Btn" aria-label="10秒進む">10秒進む ⏩</button>
           <button class="skip10-btn" id="back10Btn" aria-label="10秒戻る">⏪ 10秒戻る</button>
         </div>
+        <button class="hw-shutter ctrl-btn" id="hwShutterBtn" aria-label="キャプチャ（Cキー）" title="キャプチャ（Cキー）">📷</button>
       </div>
       <div class="frame-controls">
         <div class="frame-col">
@@ -2562,8 +2666,8 @@
       });
       const get = document.createElement('button');
       get.className = 'chapter-get';
-      get.textContent = '取得';
-      get.title = 'この章の開始と終了を、タイマーに入れてチェックします';
+      get.textContent = '記録';
+      get.title = 'この章の開始と終了を、タイマーに記録してチェックします';
       get.addEventListener('click', ()=> takeChapter(data, c));
       row.append(time, title, play, get);
       chapterList.appendChild(row);
@@ -2582,7 +2686,7 @@
     checkBookmark(0);
     checkBookmark(1);
     closeChapterPop();
-    showToast('チャプター「' + c.title + '」を取得しました（' + fmtTime(c.start) + '〜' + fmtTime(endSec) + '）');
+    showToast('チャプター「' + c.title + '」の時刻を記録しました（' + fmtTime(c.start) + '〜' + fmtTime(endSec) + '）');
   }
 
   chapterBtn.addEventListener('click', async ()=>{
@@ -3066,6 +3170,7 @@
 
   // シャッターボタン: クリックでキャプチャ（ドラッグ廃止・固定配置）
   fab.addEventListener('click', capture);
+  document.getElementById('hwShutterBtn').addEventListener('click', capture);
 
   // ---------------- organize: crop first shot ----------------
   const cropImg = document.getElementById('cropImg');
