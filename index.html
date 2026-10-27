@@ -448,6 +448,8 @@
   #playerPlaceholder{
     position:absolute;inset:0;display:flex;align-items:center;justify-content:center;
     color:var(--text-lo);font-size:13px;text-align:center;padding:20px;line-height:1.8;
+    /* 幅640pxで「さい」、959pxで「い」だけが最後の行に残っていたので、行の長さをそろえる */
+    text-wrap:balance;line-break:strict;
   }
   /* 字幕の枠の案内バー：動画エリアの真上の細い1行（動画には重ねない。表示/非表示は高さのなめらかな変化で、ガタつかせない） */
   .video-col{flex:1;min-width:200px;min-height:0;display:flex;flex-direction:column;}
@@ -539,8 +541,9 @@
     display:flex;align-items:stretch;gap:10px;flex:0 0 auto;
   }
   .side-foot .fab-group-shutter{flex:1 1 0;min-width:0;padding:6px 9px;}
-  /* カメラはアイコンだけ（「C キー」の文字は出さず、title で伝える） */
-  .side-foot .fab{font-size:44px;padding:0;}
+  /* カメラはアイコンだけ（「C キー」の文字は出さず、title で伝える）。
+     高さ44pxは絵文字のときと同じ。カードの大きさ・位置を変えないため、ここは動かさない */
+  .side-foot .fab{font-size:44px;padding:0;height:44px;color:#ffd2c6;}
   /* 段が低いので、アイコンと文字は横1行に並べる */
   .side-foot .btn-organize{
     flex:1 1 0;min-width:0;
@@ -919,8 +922,54 @@
     width:64px;height:64px;font-size:30px;
     border-color:rgba(255,93,58,.6);
     background:rgba(255,93,58,.16);
+    color:#ffd2c6;
   }
   .hw-shutter:hover{border-color:rgba(255,93,58,.95);}
+  /* カメラの絵は SVG（ハーフ幅の丸いボタンと、全画面のカードで共通）。
+     絵文字だと「文字の箱」の中で絵が下寄りに描かれ、30pxで約6px下にずれる（中央ぞろえでは直らない）。
+     SVGなら flex の中央ぞろえがそのまま効き、円やカードの中心とぴったり合う。
+     viewBox 0 0 24 24 の中で、絵の上端4.5／下端19.5／左2.5／右21.5＝中心(12,12)。
+     線の太さは上下左右で同じだけ外に出るので、中心は動かない */
+  .cam-icon{
+    display:block;width:34px;height:34px;
+    fill:none;stroke:currentColor;stroke-width:1.7;
+    stroke-linejoin:round;stroke-linecap:round;
+  }
+  .cam-icon .cam-icon-dot{fill:currentColor;stroke:none;}
+
+  /* ---------- ⋯ ボタン（ハーフ幅のみ表示。960px以上では非表示） ---------- */
+  .more-btn{display:none;}
+  /* 📑 チャプター（ハーフ幅用の控え。全画面では右パネルの3段目の本体を使うので出さない）。
+     包んでいる .bm-more-wrap は display:contents なので、全画面では無いのと同じ（中身は両方 display:none） */
+  .bm-chapter-half{display:none;}
+  .bm-more-wrap{display:contents;}
+
+  /* ---------- ⋯ ポップオーバー（position:fixed で fab-area の overflow を避ける） ---------- */
+  .more-pop{
+    position:fixed;z-index:76;
+    background:var(--panel-2);border:1px solid var(--hairline);border-radius:12px;
+    box-shadow:0 10px 30px rgba(0,0,0,.5);
+    display:none;flex-direction:column;
+    padding:6px 0;min-width:200px;
+  }
+  .more-pop.show{display:flex;}
+  .more-pop-item{
+    display:block;width:calc(100% - 12px);margin:2px 6px;
+    padding:9px 12px;border-radius:8px;
+    font-weight:700;font-size:12.5px;line-height:1.3;
+    cursor:pointer;text-align:left;white-space:nowrap;
+    border:none;transition:filter .12s ease;
+  }
+  .more-pop-item:focus-visible{outline:2px solid var(--accent-2);outline-offset:-2px;}
+  .more-pop-item[disabled]{opacity:.35;cursor:default;filter:none !important;}
+  .more-pop-item.mp-orange{background:#e8a030;color:#1c0a05;}
+  .more-pop-item.mp-orange:hover:not([disabled]){filter:brightness(1.06);}
+  .more-pop-item.mp-clear{background:transparent;border:1px solid var(--hairline);color:var(--text-lo);}
+  .more-pop-item.mp-clear:hover:not([disabled]){background:rgba(255,255,255,.06);color:var(--text-hi);}
+  .more-pop-item.mp-retry{background:rgba(124,92,252,.16);border:1px solid rgba(124,92,252,.55);color:#cfc4ff;}
+  .more-pop-item.mp-retry:hover:not([disabled]){filter:brightness(1.3);}
+  .more-pop-item.mp-memo{background:rgba(31,184,171,.16);border:1px solid rgba(31,184,171,.55);color:#b0f0e8;}
+  .more-pop-item.mp-memo:hover:not([disabled]){filter:brightness(1.3);}
 
   /* ========== ハーフ幅レイアウト（959px以下） ========== */
   @media (max-width:959px){
@@ -956,25 +1005,48 @@
     }
     /* 左列 1段目: 要約 */
     .fab-group-transcript{grid-column:1;grid-row:1;}
-    /* 🔁／📝 は、アイコンと短い言葉で1行に横並び。出ていないときは場所を取らない（高さ0） */
-    .sub-actions{display:none;}
-    .sub-actions:has(> button:not([hidden])){display:flex;gap:6px;width:100%;}
-    .sub-actions > button{
-      flex:1 1 0;min-width:0;
-      padding:3px 6px;font-size:11px;white-space:nowrap;text-wrap:initial;
+    /* 🔁／📝 はポップオーバーに移動したので、ハーフ幅では常に隠す */
+    .sub-actions{display:none !important;}
+    /* リンク・チャプター・クリアもポップオーバーに移動 */
+    .fab-group-bookmark-aux{display:none !important;}
+    /* ⋯ ボタン（3段目の右端。押しやすい36px）
+       .bm-actions button(0,1,1)に勝つため .bm-actions .more-btn(0,2,0)にする */
+    /* 📑 チャプターを、「📌 時刻を記録」「⏩ ジャンプ」と同じ段に出す。
+       3つ＋⋯ が1行に収まらない幅では、「📑 チャプター」と「⋯」をひとかたまりで次の行に折り返す
+       （名前は短くしない。⋯ だけが1行に残って間延びするのを避けるため、2つを1つの箱に入れている） */
+    .fab-group-bookmark .bm-actions{flex-wrap:wrap;}
+    /* 基準の幅50px＝⋯ の36px＋すき間6px＋ボタンの左右の内側の余白8px。
+       こうすると「📑 チャプター」の見た目の幅が「📌 時刻を記録」「⏩ ジャンプ」とぴったりそろう */
+    .fab-group-bookmark .bm-more-wrap{display:flex;gap:6px;flex:1 1 50px;min-width:0;}
+    .bm-actions .bm-chapter-half{display:block;flex:1;}
+    /* 幅が足りないとき、「📌 時刻を」「記録」が1文字ずつ縦に崩れないようにする
+       （折り返してよいのは、この2つの文節の切れ目だけ） */
+    .bm-actions button .wb{white-space:nowrap;}
+    .bm-actions .more-btn{
+      display:flex;align-items:center;justify-content:center;
+      flex:0 0 36px;width:36px;height:36px;
+      /* 押せるボタンだと分かるよう、緑の円を最初から出しておく（枠はいちばん明るい緑）。
+         マウスを乗せたときは地が濃くなり、開いているときは塗りつぶす */
+      border-radius:999px;border:1px solid var(--accent-2);
+      background:rgba(31,184,171,.14);color:var(--text-hi);
+      font-size:18px;font-weight:700;
+      cursor:pointer;position:relative;padding:0;
+      transition:filter .12s ease,border-color .12s ease,background-color .12s ease,color .12s ease;
     }
-    .btn-retry-sub .long,.btn-open-memo .long{display:none;}
-    .btn-retry-sub .short,.btn-open-memo .short{display:inline;}
-    /* 左列 3段目: リンク・チャプター・クリア（横並び折り返し） */
-    .fab-group-bookmark-aux{
-      grid-column:1;grid-row:3;margin-top:0;
-      flex-direction:row;flex-wrap:wrap;gap:4px;
-      align-items:stretch;
+    .bm-actions .more-btn:hover{border-color:var(--accent-2);background:rgba(31,184,171,.32);filter:brightness(1.2);}
+    .bm-actions .more-btn:focus-visible{outline:2px solid var(--accent-2);outline-offset:2px;}
+    /* 開いているときは、円を塗りつぶして「今ここが開いている」と分かるようにする */
+    .bm-actions .more-btn[aria-expanded="true"]{
+      border-color:var(--accent-2);background:var(--accent-2);color:#06231f;
     }
-    .fab-group-bookmark-aux .bm-actions{width:auto;flex:1 1 auto;}
-    .fab-group-bookmark-aux .bm-actions button{
-      padding:4px 4px;font-size:11px;white-space:normal;line-height:1.25;
+    /* 通知ドット（🔁📝が使えるとき、赤みのある小さな丸） */
+    .more-dot{
+      position:absolute;top:2px;right:2px;
+      width:8px;height:8px;border-radius:50%;
+      background:var(--accent);
+      display:none;pointer-events:none;
     }
+    .more-btn.has-dot .more-dot{display:block;}
     /* 右列: 再生まわり（左の段数にかかわらず、ここだけが高さを決める）。
        左に「10秒進む／10秒戻る」(縦2段)、右に「再生」(上)と「カメラ」(下) */
     .fab-group-playback{grid-column:2;grid-row:1 / 5;margin-top:0;}
@@ -1085,6 +1157,7 @@
       <div class="bm-actions">
         <button id="bmCaptureBtn"><span class="wb">📌 時刻を</span><span class="wb">記録</span></button>
         <button id="bmJumpBtn">⏩ ジャンプ</button>
+        <div class="bm-more-wrap"><button id="bmChapterBtnHalf" class="bm-chapter-half" title="動画のチャプター一覧を開きます（start.bat から開いた画面で使えます）">📑 チャプター</button><button id="moreBtn" class="more-btn" aria-label="その他の操作" title="その他の操作" aria-expanded="false" aria-haspopup="true">⋯<span class="more-dot" aria-hidden="true"></span></button></div>
       </div>
     </div>
     <div class="fab-group fab-group-bookmark-aux">
@@ -1106,7 +1179,7 @@
           <button class="skip10-btn" id="fwd10Btn" aria-label="10秒進む">10秒進む ⏩</button>
           <button class="skip10-btn" id="back10Btn" aria-label="10秒戻る">⏪ 10秒戻る</button>
         </div>
-        <button class="hw-shutter ctrl-btn" id="hwShutterBtn" aria-label="キャプチャ（Cキー）" title="キャプチャ（Cキー）">📷</button>
+        <button class="hw-shutter ctrl-btn" id="hwShutterBtn" aria-label="キャプチャ（Cキー）" title="キャプチャ（Cキー）"><svg class="cam-icon" viewBox="0 0 24 24" aria-hidden="true" focusable="false"><path d="M2.5 9.2v8.3a2 2 0 0 0 2 2h15a2 2 0 0 0 2-2V9.2a2 2 0 0 0-2-2h-2.6l-1.2-2.7H10.3L9.1 7.2H4.5a2 2 0 0 0-2 2Z"/><circle cx="12" cy="13.3" r="3.9"/><circle cx="18.3" cy="10.4" r=".85" class="cam-icon-dot"/></svg></button>
       </div>
       <div class="frame-controls">
         <div class="frame-col">
@@ -1121,6 +1194,13 @@
     </div>
   </div>
 
+  <div id="morePop" class="more-pop" role="menu" aria-label="その他の操作">
+    <button class="more-pop-item mp-orange" id="moreLink" role="menuitem">🔗 区間リンクをコピー</button>
+    <button class="more-pop-item mp-clear" id="moreClear" role="menuitem" disabled>🗑 時刻をクリア</button>
+    <button class="more-pop-item mp-retry" id="moreRetry" role="menuitem" disabled>🔁 別の字幕でやり直す</button>
+    <button class="more-pop-item mp-memo" id="moreMemo" role="menuitem">📝 メモを開く</button>
+  </div>
+
   <div class="side-pane">
     <div class="side-head">
       <span class="label">Captures</span>
@@ -1131,7 +1211,7 @@
     </div>
     <div class="side-foot">
       <div class="fab-group fab-group-shutter">
-        <button class="fab" id="shutterBtn" aria-label="キャプチャ（Cキー）" title="キャプチャ（Cキー）">📷</button>
+        <button class="fab" id="shutterBtn" aria-label="キャプチャ（Cキー）" title="キャプチャ（Cキー）"><svg class="cam-icon" viewBox="0 0 24 24" aria-hidden="true" focusable="false"><path d="M2.5 9.2v8.3a2 2 0 0 0 2 2h15a2 2 0 0 0 2-2V9.2a2 2 0 0 0-2-2h-2.6l-1.2-2.7H10.3L9.1 7.2H4.5a2 2 0 0 0-2 2Z"/><circle cx="12" cy="13.3" r="3.9"/><circle cx="18.3" cy="10.4" r=".85" class="cam-icon-dot"/></svg></button>
       </div>
       <button class="btn btn-organize" id="organizeBtn" disabled><span class="org-icon" aria-hidden="true">✂️</span><span class="org-label">整理する</span></button>
     </div>
@@ -1595,6 +1675,12 @@
   // ---------------- YouTube IFrame API ----------------
   let player = null;
   const placeholder = document.getElementById('playerPlaceholder');
+  // 動画エリアの案内文は、配布モード（exe から起動）のときだけ出す。
+  // 開発モード（start.bat から起動）では、動画を読み込む前は真っ黒な空きのままにする。
+  // モードは server.py が差し込む __ST_MODE__（/api/health が返す mode と同じもの）で判定する。
+  function setPlaceholderText(msg){ placeholder.textContent = DIST_MODE ? msg : ''; }
+  // index.html に最初から書いてある文（「YouTube動画を読み込んでいます…」）も、同じ扱いにする
+  setPlaceholderText(placeholder.textContent);
 
   function extractVideoId(input){
     input = input.trim();
@@ -2137,7 +2223,7 @@
       }else{
         localVideo.style.display = '';
         placeholder.style.display = '';
-        placeholder.textContent = '動画ファイルをここにドロップ、または上のボタンから選択してください（MP4推奨。MOV(HEVC)はブラウザによっては再生できません）';
+        setPlaceholderText('動画ファイルをここにドロップ、または上のボタンから選択してください（MP4推奨。MOV(HEVC)はブラウザによっては再生できません）');
       }
     }else{
       localVideo.style.display = 'none';
@@ -2146,7 +2232,7 @@
         placeholder.style.display = 'none';
       }else{
         placeholder.style.display = '';
-        placeholder.textContent = 'YouTubeのURLを上の入力欄に貼り付けて「読み込む」を押してください';
+        setPlaceholderText('YouTubeのURLを上の入力欄に貼り付けて「読み込む」を押してください');
       }
     }
     resetBookmarks();
@@ -2219,7 +2305,7 @@
   // ---------------- video load (URL/ID direct input) ----------------
   const VID_INPUT_KEY = 'stLastVideoInput';
   let currentVideoId = null;
-  placeholder.textContent = 'YouTubeのURLを上の入力欄に貼り付けて「読み込む」を押してください';
+  setPlaceholderText('YouTubeのURLを上の入力欄に貼り付けて「読み込む」を押してください');
   const savedVideoInput = localStorage.getItem(VID_INPUT_KEY);
   if(savedVideoInput) document.getElementById('videoInput').value = savedVideoInput;
 
@@ -2387,6 +2473,8 @@
   function updateClearBtn(){
     const any = bmTimes.some(t=>t !== null) || bmChecks.some(c=>c.checked);
     bmClearBtn.disabled = !any;
+    const mc = document.getElementById('moreClear');
+    if(mc) mc.disabled = !any;
   }
 
   function renderBookmarks(){
@@ -2465,13 +2553,13 @@
   // 「🔁 別の字幕でやり直す」ボタンと、直前の要約の覚え書き（範囲・方式・使った字幕の種類）
   const retrySubBtn = document.getElementById('retrySubBtn');
   let lastSummary = null;
-  function showRetrySub(){ retrySubBtn.hidden = false; retrySubBtn.disabled = false; }
-  function hideRetrySub(){ retrySubBtn.hidden = true; retrySubBtn.disabled = false; lastSummary = null; }
+  function showRetrySub(){ retrySubBtn.hidden = false; retrySubBtn.disabled = false; if(typeof updateMoreDot==='function') updateMoreDot(); }
+  function hideRetrySub(){ retrySubBtn.hidden = true; retrySubBtn.disabled = false; lastSummary = null; if(typeof updateMoreDot==='function') updateMoreDot(); }
 
   // 「📝 メモを開く」ボタン（要約成功後に出す。設定のオン・オフにかかわらず出す）
   const openMemoBtn = document.getElementById('openMemoBtn');
-  function showOpenMemoBtn(){ openMemoBtn.hidden = false; }
-  function hideOpenMemoBtn(){ openMemoBtn.hidden = true; }
+  function showOpenMemoBtn(){ openMemoBtn.hidden = false; if(typeof updateMoreDot==='function') updateMoreDot(); }
+  function hideOpenMemoBtn(){ openMemoBtn.hidden = true; if(typeof updateMoreDot==='function') updateMoreDot(); }
   openMemoBtn.addEventListener('click', ()=>{
     const result = openOrFocusMemo();
     if(result === 'blocked'){
@@ -2575,6 +2663,13 @@
   const chapterPop = document.getElementById('chapterPop');
   const chapterList = document.getElementById('chapterList');
   const chapterBtn = document.getElementById('bmChapterBtn');
+  // ハーフ幅では、右パネルの3段目ではなく、左のボタン群の3段目に出した控えのボタンを使う。
+  // 本体（右パネル側）は全画面のときだけ見えるので、見えている方を基準に位置を決める
+  const chapterBtnHalf = document.getElementById('bmChapterBtnHalf');
+  function visibleChapterBtn(){
+    return chapterBtnHalf.offsetParent ? chapterBtnHalf : chapterBtn;
+  }
+  chapterBtnHalf.addEventListener('click', ()=>{ chapterBtn.click(); });
   let chaptersState = { videoId: null, data: null, promise: null };  // 動画ごとに1つだけ覚える
 
   function chaptersFor(videoId){
@@ -2625,7 +2720,7 @@
   }
 
   function positionChapterPop(){
-    const r = chapterBtn.getBoundingClientRect();
+    const r = visibleChapterBtn().getBoundingClientRect();
     chapterPop.style.maxHeight = Math.min(360, window.innerHeight - 16) + 'px';
     const w = chapterPop.offsetWidth, h = chapterPop.offsetHeight;
     const left = Math.max(8, r.left - w - 8);
@@ -2722,7 +2817,7 @@
   });
   document.addEventListener('pointerdown', (e)=>{
     if(!chapterPop.classList.contains('show')) return;
-    if(chapterPop.contains(e.target) || chapterBtn.contains(e.target)) return;
+    if(chapterPop.contains(e.target) || chapterBtn.contains(e.target) || chapterBtnHalf.contains(e.target)) return;
     closeChapterPop();
   });
   document.addEventListener('keydown', (e)=>{
@@ -3067,6 +3162,11 @@
 
   let capturing = false;
   async function capture(){
+    // 浮かせて出している小窓（⋯ のメニュー・チャプターの一覧）は、画面共有の映像に写り込む。
+    // .fab-area を隠す処理では消えないので、撮る前に必ず閉じる。
+    // ここは capture() のいちばん先頭＝await の前なので、閉じてからでないと撮影には進まない
+    if(typeof closeMorePop === 'function') closeMorePop();
+    if(typeof closeChapterPop === 'function') closeChapterPop();
     if(capturing) return;
     if(currentMode === 'local'){
       if(!localVideo.videoWidth){ setStatus('動画が読み込まれていません。', true); return; }
@@ -3742,6 +3842,85 @@
     const prev = lastSummary;
     const want = prev.type === 'auto' ? 'manual' : 'auto';
     runSummarize(prev.startSec, prev.endSec, prev.mode, want, prev.type);
+  });
+
+  // ---------------- ⋯ ポップオーバー（ハーフ幅のみ） ----------------
+  const moreBtn = document.getElementById('moreBtn');
+  const morePop = document.getElementById('morePop');
+  const moreRetryItem = document.getElementById('moreRetry');
+  const moreMemoItem = document.getElementById('moreMemo');
+  const moreClearItem = document.getElementById('moreClear');
+
+  function openMorePop(){
+    morePop.classList.add('show');
+    moreBtn.setAttribute('aria-expanded', 'true');
+    syncMorePopState();
+    positionMorePop();
+  }
+  function closeMorePop(){
+    morePop.classList.remove('show');
+    morePop.style.display = '';
+    moreBtn.setAttribute('aria-expanded', 'false');
+  }
+  function positionMorePop(){
+    const r = moreBtn.getBoundingClientRect();
+    morePop.style.visibility = 'hidden';
+    morePop.style.display = 'flex';
+    const w = morePop.offsetWidth;
+    const h = morePop.offsetHeight;
+    morePop.style.visibility = '';
+    morePop.style.display = '';
+    const left = Math.max(8, Math.min(r.right - w, window.innerWidth - w - 8));
+    const top = Math.max(8, r.top - h - 6);
+    morePop.style.left = left + 'px';
+    morePop.style.top = top + 'px';
+  }
+  function syncMorePopState(){
+    moreClearItem.disabled = bmClearBtn.disabled;
+    moreRetryItem.disabled = retrySubBtn.hidden || retrySubBtn.disabled;
+    // 📝 メモを開く は、要約の前でもいつでも押せる（メモ窓を開くだけで、要約に関係しないため）
+  }
+  function updateMoreDot(){
+    const active = !retrySubBtn.hidden || !openMemoBtn.hidden;
+    moreBtn.classList.toggle('has-dot', active);
+  }
+  moreBtn.addEventListener('click', ()=>{
+    if(morePop.classList.contains('show')){ closeMorePop(); return; }
+    openMorePop();
+  });
+  document.addEventListener('pointerdown', (e)=>{
+    if(!morePop.classList.contains('show')) return;
+    if(morePop.contains(e.target) || moreBtn.contains(e.target)) return;
+    closeMorePop();
+  });
+  document.addEventListener('keydown', (e)=>{
+    if(e.key === 'Escape' && morePop.classList.contains('show')){ closeMorePop(); e.stopPropagation(); }
+  });
+  window.addEventListener('resize', ()=>{
+    if(!morePop.classList.contains('show')) return;
+    if(window.innerWidth >= 960){ closeMorePop(); return; }
+    positionMorePop();
+  });
+
+  document.getElementById('moreLink').addEventListener('click', ()=>{
+    closeMorePop();
+    document.getElementById('bmLinkBtn').click();
+  });
+  moreClearItem.addEventListener('click', ()=>{
+    if(moreClearItem.disabled) return;
+    closeMorePop();
+    bmClearBtn.click();
+  });
+  moreRetryItem.addEventListener('click', ()=>{
+    if(moreRetryItem.disabled) return;
+    closeMorePop();
+    retrySubBtn.click();
+  });
+  moreMemoItem.addEventListener('click', ()=>{
+    if(moreMemoItem.disabled) return;
+    closeMorePop();
+    const result = openOrFocusMemo();
+    if(result === 'blocked') showMemoNotice(MEMO_BLOCKED_PARTS);
   });
 
   // summary overlay handlers
