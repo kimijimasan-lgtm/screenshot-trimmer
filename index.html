@@ -158,6 +158,60 @@
   .chapter-play{background:var(--panel);color:var(--text-hi);border:1px solid var(--hairline) !important;}
   .chapter-get{background:#e8a030;color:#1c0a05;}
   .chapter-row button:hover{filter:brightness(1.1);}
+  /* いまの章・次の章（チャプターのある動画だけ、いつも出す）。
+     全画面は時刻の段の空き（.tb-spacer の中）に横2つ、ハーフ幅は左のボタン群の下に縦2行。
+     中身は同じ作りで、JSが両方を同時に書き換える。チャプターが無いときは hidden で何も出さない */
+  .chap-now[hidden]{display:none !important;}
+  .chap-now{display:flex;gap:10px;min-width:0;}
+  .cn-item{
+    flex:1 1 0;min-width:0;display:flex;align-items:center;gap:6px;
+    padding-left:7px;border-left:3px solid transparent;border-radius:0 8px 8px 0;
+  }
+  /* いまの章は、チャプター一覧の再生中の章と同じ強調（紫の地と左の線） */
+  .cn-item.cn-cur{background:rgba(124,92,252,.18);border-left-color:var(--accent);}
+  /* 最初の章が始まる前の「いまの章」、最後の章のときの「次の章」は、場所だけ残して空にする */
+  .cn-item.cn-empty{visibility:hidden;}
+  .cn-text{flex:1 1 auto;min-width:0;display:flex;flex-direction:column;justify-content:center;}
+  .cn-head{display:flex;align-items:baseline;gap:6px;white-space:nowrap;line-height:1.2;}
+  .cn-label{font-size:13px;font-weight:600;color:var(--text-lo);}
+  .cn-cur .cn-label{color:#cfc4ff;}
+  .cn-time{font-size:13px;font-weight:700;color:var(--accent);}
+  .cn-title{
+    font-size:14px;font-weight:600;line-height:1.25;color:var(--text-hi);
+    white-space:nowrap;overflow:hidden;text-overflow:ellipsis;
+  }
+  .cn-item button{
+    flex:0 0 auto;height:36px;min-width:36px;padding:0 9px;border-radius:8px;border:none;
+    font-weight:700;font-size:13px;cursor:pointer;line-height:1;
+  }
+  .cn-item button.cn-play{padding:0;width:36px;}
+  .cn-item button:hover{filter:brightness(1.1);}
+  .cn-item button:focus-visible{outline:2px solid var(--accent-2);outline-offset:2px;}
+  /* 全画面：時刻の段の空き（flex:1 の空き箱）の中に、絶対配置で重ねる。
+     空き箱の大きさにも、段の高さにも影響しないので、ほかの要素は1pxも動かない */
+  .tb-spacer{position:relative;}
+  .chap-now-tb{
+    position:absolute;left:0;right:0;top:50%;transform:translateY(-50%);
+    container-type:inline-size;
+  }
+  /* 広い画面で横に間延びしないよう、1つの幅は400pxまで（余りは右の空きに残す） */
+  .chap-now-tb .cn-item{flex:0 1 400px;}
+  .chap-now-half{display:none;}
+  /* 空きが狭いとき（チャンネルアイコンが多い・窓が狭い）は、空きの幅に合わせて段階的に縮める。
+     440px以上：2つとも名前つき ／ 320〜439px：2つとも名前を省く（名前はマウスを乗せると出る）／
+     230〜319px：いまの章だけ、名前つき ／ 160〜229px：いまの章だけ、名前を省く ／ 159px以下：何も出さない
+     （名前を省いた形は、ラベルの下に時刻を置いて幅を詰める。1つ約154px） */
+  @container ((min-width:320px) and (max-width:439.98px)) or (max-width:229.98px){
+    .chap-now-tb .cn-title{display:none;}
+    .chap-now-tb .cn-head{flex-direction:column;align-items:flex-start;gap:0;}
+    .chap-now-tb .cn-item{flex:0 1 auto;}
+  }
+  @container (max-width:319.98px){
+    .chap-now-tb .cn-item.cn-next{display:none;}
+  }
+  @container (max-width:159.98px){
+    .chap-now-tb .cn-item{display:none;}
+  }
   .bm-list{display:flex;gap:22px;align-items:center;}
   .bm-row{display:flex;align-items:center;gap:8px;cursor:pointer;}
   .bm-row input{width:22px;height:22px;flex:0 0 auto;accent-color:var(--accent-2);cursor:pointer;margin:0;}
@@ -1064,6 +1118,10 @@
     .playback-controls .hw-shutter{grid-area:cam;}
     /* 左列 2段目: 時刻を記録・ジャンプ */
     .fab-group-bookmark{grid-column:1;grid-row:2;}
+    /* 左列 3段目: いまの章・次の章（縦2行。高さ36px×2＋すき間4px＝76px で、
+       右の再生まわりの高さに収まるので、ボタン群・動画の大きさは変わらない） */
+    .chap-now-half{display:flex;flex-direction:column;gap:4px;grid-column:1;grid-row:3;}
+    .chap-now-tb{display:none;}
     /* ハーフ幅カメラ表示 / サイドペインのカメラ隠す */
     .hw-shutter{display:flex;}
     .side-foot .fab-group-shutter{display:none;}
@@ -1103,7 +1161,9 @@
     <label class="bm-row"><input type="checkbox" class="bm-check"><span class="bm-time mono empty">--:--</span></label>
     <label class="bm-row"><input type="checkbox" class="bm-check"><span class="bm-time mono empty">--:--</span></label>
   </div>
-  <div style="flex:1;"></div>
+  <div class="tb-spacer" style="flex:1;">
+    <div class="chap-now chap-now-tb" id="chapNow" hidden></div>
+  </div>
   <div class="chan-row" id="chanRow" title="よく見るチャンネル"></div>
 </div>
 
@@ -1171,6 +1231,7 @@
         <button id="bmClearBtn" class="bm-clear" title="チェックと、記録した3つの時刻を、すべて消します" disabled>🗑 時刻をクリア</button>
       </div>
     </div>
+    <div class="chap-now chap-now-half" id="chapNowHalf" hidden></div>
 
     <div class="fab-group fab-group-playback">
       <div class="playback-controls">
@@ -2456,6 +2517,8 @@
   // ---------------- current position display + bookmarks ----------------
   const nowTimeEl = document.getElementById('nowTime');
   setInterval(()=>{
+    // いまの章・次の章は、動画の準備前でも見る（動画の切り替え・ローカル動画モードへの切り替えで、すぐ消すため）
+    if(typeof updateChapNow === 'function') updateChapNow();
     const ap = getActivePlayer();
     if(!ap.ready()) return;  // 動画未読み込み時は 0:00 のまま
     nowTimeEl.textContent = fmtTime(ap.currentTime());
@@ -2754,11 +2817,7 @@
       play.className = 'chapter-play';
       play.textContent = '▶';
       play.title = 'この場所へ移動して再生';
-      play.addEventListener('click', ()=>{
-        const ap = getActivePlayer();
-        ap.seekTo(c.start);
-        ap.play();
-      });
+      play.addEventListener('click', ()=> playChapter(c));
       const get = document.createElement('button');
       get.className = 'chapter-get';
       get.textContent = '記録';
@@ -2768,6 +2827,13 @@
       chapterList.appendChild(row);
     });
     markCurrentChapterRow(currentChapterIndex(data.chapters, getActivePlayer().currentTime()));
+  }
+
+  // 章の始めへ移動して再生（一覧の「▶」と、いまの章・次の章の「▶」で共通）
+  function playChapter(c){
+    const ap = getActivePlayer();
+    ap.seekTo(c.start);
+    ap.play();
   }
 
   // 章の「開始」「終了」を取得枠に入れて、2つともチェック（既存の時刻・チェックはこの2つで置き換える）
@@ -2824,6 +2890,81 @@
     if(e.key === 'Escape' && chapterPop.classList.contains('show')) closeChapterPop();
   });
   window.addEventListener('resize', ()=>{ if(chapterPop.classList.contains('show')) positionChapterPop(); });
+
+  // ---------------- いまの章・次の章（いつも表示） ----------------
+  // 動画を読み込んだときに裏で取ったチャプター（chaptersState）を使うだけで、取り直さない。
+  // 全画面用（時刻の段）とハーフ幅用（左のボタン群の下）の2か所を、同じ中身で書き換える。
+  // 再生位置の見張り（0.5秒ごと）から呼ばれるが、章が変わったときだけDOMを触る
+  const chapNowBoxes = [document.getElementById('chapNow'), document.getElementById('chapNowHalf')];
+  const chapNowSlots = { cur: [], next: [] };
+  let chapNowShown = { data: null, idx: null };  // 表示中の中身（同じなら何もしない）
+
+  function buildChapNowItem(box, kind){
+    const item = document.createElement('div');
+    item.className = 'cn-item ' + (kind === 'cur' ? 'cn-cur' : 'cn-next');
+    const text = document.createElement('div');
+    text.className = 'cn-text';
+    const head = document.createElement('div');
+    head.className = 'cn-head';
+    const label = document.createElement('span');
+    label.className = 'cn-label';
+    label.textContent = kind === 'cur' ? 'いまの章' : '次の章';
+    const time = document.createElement('span');
+    time.className = 'cn-time mono';
+    head.append(label, time);
+    const title = document.createElement('div');
+    title.className = 'cn-title';
+    text.append(head, title);
+    const play = document.createElement('button');
+    play.type = 'button';
+    play.className = 'cn-play chapter-play';
+    play.textContent = '▶';
+    play.title = 'この場所へ移動して再生';
+    play.setAttribute('aria-label', (kind === 'cur' ? 'いまの章' : '次の章') + 'の始めへ移動して再生');
+    const get = document.createElement('button');
+    get.type = 'button';
+    get.className = 'cn-get chapter-get';
+    get.textContent = '記録';
+    get.title = 'この章の開始と終了を、タイマーに記録してチェックします';
+    get.setAttribute('aria-label', (kind === 'cur' ? 'いまの章' : '次の章') + 'の時刻を記録');
+    // 押したときに、その時点で出ている章を使う（slot.chapter は表示を書き換えるたびに更新）
+    const slot = { item, time, title, chapter: null };
+    play.addEventListener('click', ()=>{ if(slot.chapter) playChapter(slot.chapter); });
+    get.addEventListener('click', ()=>{ if(slot.chapter && chapNowShown.data) takeChapter(chapNowShown.data, slot.chapter); });
+    item.append(text, play, get);
+    box.appendChild(item);
+    chapNowSlots[kind].push(slot);
+  }
+  chapNowBoxes.forEach((box)=>{ buildChapNowItem(box, 'cur'); buildChapNowItem(box, 'next'); });
+
+  function fillChapNowSlot(slot, c){
+    slot.chapter = c;
+    slot.item.classList.toggle('cn-empty', !c);
+    slot.time.textContent = c ? fmtTime(c.start) : '';
+    slot.title.textContent = c ? c.title : '';
+    // 名前を省いたとき・省略記号で切れたときも、マウスを乗せれば全部読める
+    slot.item.title = c ? fmtTime(c.start) + '　' + c.title : '';
+  }
+
+  function updateChapNow(){
+    // 出すのは、YouTubeモードで、いまの動画のチャプターを取得済みで、1つ以上あるときだけ
+    const d = (currentMode !== 'local' && transcriptServerAvailable && currentVideoId
+               && chaptersState.videoId === currentVideoId) ? chaptersState.data : null;
+    const chapters = d && d.chapters.length ? d.chapters : null;
+    const idx = chapters ? currentChapterIndex(chapters, getActivePlayer().currentTime()) : null;
+    if(chapNowShown.data === d && chapNowShown.idx === idx) return;  // 変化なし
+    chapNowShown = { data: d, idx };
+    if(!chapters){
+      chapNowBoxes.forEach(b=>{ b.hidden = true; });
+      return;
+    }
+    // idx が -1 ＝ 最初の章がまだ始まっていない：いまの章は空、次の章に最初の章
+    const cur = idx >= 0 ? chapters[idx] : null;
+    const next = chapters[idx + 1] || null;  // 最後の章のときは空
+    chapNowSlots.cur.forEach(s=> fillChapNowSlot(s, cur));
+    chapNowSlots.next.forEach(s=> fillChapNowSlot(s, next));
+    chapNowBoxes.forEach(b=>{ b.hidden = false; });
+  }
 
   // 区間リンクをコピー：チェックした2点（早い方=開始・遅い方=終了）から t=&end= 付きのYouTubeリンクを作る
   document.getElementById('bmLinkBtn').addEventListener('click', async ()=>{

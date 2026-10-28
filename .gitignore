@@ -12,3 +12,6 @@ Thumbs.db
 # 機密情報（APIキー等）を書き出す可能性のあるローカル設定ファイル
 *.local
 secrets.json
+
+# Python が自動で作るキャッシュ（テスト用サーバーの起動などで作られる）
+__pycache__/
