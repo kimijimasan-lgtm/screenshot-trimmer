@@ -42,9 +42,14 @@ FROZEN = getattr(sys, 'frozen', False)
 DEV_MODE = (not FROZEN) and ('--dev' in sys.argv)
 DIST_MODE = not DEV_MODE
 
-# exe と同じフォルダ（開発中は server.py と同じフォルダ）。配信もここから行う
-BASE_DIR = os.path.dirname(os.path.abspath(
+# exe と同じフォルダ（開発中は server.py と同じフォルダ）。
+# yt-dlp.exe や port.txt はこのフォルダにある
+EXE_DIR = os.path.dirname(os.path.abspath(
     sys.executable if FROZEN else __file__))
+
+# PyInstaller が index.html などを入れるフォルダ（_internal）。
+# 開発中は server.py と同じフォルダなので、EXE_DIR と同じ
+BUNDLE_DIR = getattr(sys, '_MEIPASS', EXE_DIR)
 
 # 画面からの合図（ハートビート）が途切れたら、自分で終了する（配布モードだけ）
 # テストのときだけ、環境変数で短くできる
@@ -102,7 +107,7 @@ def ytdlp_cmd():
     """
     if _ytdlp_cache:
         return _ytdlp_cache[0]
-    bundled = os.path.join(BASE_DIR, 'yt-dlp.exe')
+    bundled = os.path.join(EXE_DIR, 'yt-dlp.exe')
     found = bundled if os.path.exists(bundled) else shutil.which('yt-dlp')
     _ytdlp_cache.append(found)
     return found
@@ -335,7 +340,7 @@ class Handler(http.server.SimpleHTTPRequestHandler):
         """index.html に、今のモードを差し込んでから返す。
         画面側は、これを見てローカル動画モードの出し分けと、合図の送信を決める。
         """
-        path = os.path.join(BASE_DIR, 'index.html')
+        path = os.path.join(BUNDLE_DIR, 'index.html')
         try:
             with open(path, 'rb') as f:
                 body = f.read()
@@ -439,7 +444,7 @@ def read_port():
     （ほかのソフトと本当にぶつかったときの、逃げ道）。
     ※ポートを変えると、ブラウザの保存領域（APIキーなど）が別物になります。
     """
-    path = os.path.join(BASE_DIR, 'port.txt')
+    path = os.path.join(EXE_DIR, 'port.txt')
     try:
         with open(path, 'r', encoding='utf-8') as f:
             n = int(f.read().strip())
@@ -504,7 +509,7 @@ def main():
         sys.exit(0)
 
     try:
-        handler = partial(Handler, directory=BASE_DIR)
+        handler = partial(Handler, directory=BUNDLE_DIR)
         server = Server((HOST, port), handler)
     except OSError as e:
         err = getattr(e, 'winerror', None) or getattr(e, 'errno', None)
