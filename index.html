@@ -52,10 +52,28 @@
   }
   .mode-tab.active{background:var(--accent);color:#1c0a05;}
   .mode-tab:hover:not(.active){color:var(--text-hi);}
+  /* ピルはヘッダーから外した。高さ(この段の高さ)だけを、幅0の見えない支えで残す。
+     中の文字は「ローカル」のまま（和文の字体で行の高さが決まるため）。
+     すき間(14px)も打ち消すので、横の並びには何も足さない */
+  .hdr-sizer{
+    width:0;padding:3px 0;border-width:1px 0;margin-right:-14px;
+    overflow:hidden;visibility:hidden;pointer-events:none;
+  }
   .mode-hide{display:none !important;}
-  .loadbar{flex:1;display:flex;gap:8px;min-width:0;align-items:center;}
+  /* 動画のタイトル：中央の余りだけを使う（基準の幅0）。幅が足りないときは、ここが先に縮む */
+  .video-title{
+    flex:1 1 0;min-width:0;
+    overflow:hidden;white-space:nowrap;text-overflow:ellipsis;text-align:center;
+    font-size:14px;font-weight:700;color:var(--text-hi);
+  }
+  /* 「…」だけになるほど狭いときは出さない（JS が vt-tight を付ける） */
+  .video-title.vt-tight{visibility:hidden;}
+  /* タイトルが無いときは、すき間(14px)が2つぶん空かないよう、1つを打ち消す */
+  .video-title:empty{margin-right:-14px;}
+  /* アドレス欄とボタンは右づめ（⚙ 設定の左） */
+  .loadbar{flex:0 1 auto;display:flex;gap:8px;min-width:0;align-items:center;}
   .loadbar input{
-    flex:0 1 280px;min-width:140px;padding:6px 10px;border-radius:8px;
+    flex:0 1 280px;width:280px;min-width:140px;  /* width も指定（.loadbar の幅の計算に、280px を使わせる） */padding:6px 10px;border-radius:8px;
     border:1px solid var(--hairline);background:var(--ink);color:var(--text-hi);font-size:12.5px;
   }
   .loadbar input:focus{outline:none;border-color:var(--accent-2);}
@@ -72,24 +90,16 @@
     cursor:pointer;white-space:nowrap;
   }
   .paste-load-btn:hover{filter:brightness(1.06);}
-  /* 開発モード（「ローカル」の切り替えがある）の境目 */
-  /* 幅が狭いときは📋だけにして、入力欄の幅を確保する（実測の限界720pxに余裕を見て760px） */
-  @media (max-width:760px){
-    html:not(.st-dist) .paste-load-btn .plb-label{display:none;}
-    html:not(.st-dist) .paste-load-btn{padding:5px 8px;}
-  }
-  /* 📋だけでもヘッダーに入らない幅では出さない（実測の限界620pxに余裕を見て660px） */
+  /* 「ローカル」の切り替えをヘッダーから外したので、開発モードと配布モードで同じ境目にする。
+     幅が狭いときは📋だけにして、入力欄の幅を確保する（実測の限界620pxに余裕を見て660px） */
   @media (max-width:660px){
-    html:not(.st-dist) .paste-load-btn{display:none;}
+    .paste-load-btn .plb-label{display:none;}
+    .paste-load-btn{padding:5px 8px;}
   }
-  /* 配布モードは「ローカル」の切り替え（163.5px）とすき間（14px）が無いので、
-     その177.5px ぶんだけ、境目を狭い方へずらす（760→583 / 660→483） */
-  @media (max-width:583px){
-    .st-dist .paste-load-btn .plb-label{display:none;}
-    .st-dist .paste-load-btn{padding:5px 8px;}
-  }
+  /* 📋だけでもヘッダーに入らない幅では出さない（今までどおり483px。
+     画面の最小幅は576pxなので、ここから下は横に動かして見る） */
   @media (max-width:483px){
-    .st-dist .paste-load-btn{display:none;}
+    .paste-load-btn{display:none;}
   }
   /* ローカル動画モード：読み込み中のファイル名表示＋コピーボタン */
   .local-filename{
@@ -320,9 +330,7 @@
   .settings-menu-state.off{background:#eef0f4;color:#8b8f9c;border:1px solid #d8dbe2;}
   .settings-menu-arrow{font-size:17px;font-weight:700;color:#8b8f9c;flex-shrink:0;line-height:1;}
   /* 配布モードでは、ローカル動画モードを出さない（server.py が <html> に st-dist を付ける） */
-  .st-dist #modeToggle{display:none;}
-  /* 空いた177.5px ぶん、アドレス入力欄を広げる（長いアドレスが最後まで見えるように） */
-  .st-dist .loadbar input{flex:0 1 458px;}
+  .st-dist .hdr-sizer, .st-dist #localModeSwitch{display:none;}
   /* 設定メニューの小さな切り替え（整理するときメモを左半分に開く） */
   .settings-switch{
     display:flex;align-items:flex-start;gap:8px;cursor:pointer;user-select:none;
@@ -508,6 +516,15 @@
   /* 字幕の枠の案内バー：動画エリアの真上の細い1行（動画には重ねない。表示/非表示は高さのなめらかな変化で、ガタつかせない） */
   .video-col{flex:1;min-width:200px;min-height:0;display:flex;flex-direction:column;}
   .video-col .video-pane{flex:1;min-height:0;min-width:0;}
+  /* 動画のタイトルの帯（ハーフ幅で、ヘッダーにタイトルを出す幅が無いときだけ。JS が show を付ける）。
+     出さないときは display:none で高さ0。ヘッダーのタイトルと同時には出さない */
+  .video-title-band{
+    display:none;flex:0 0 auto;height:26px;line-height:26px;padding:0 10px;
+    overflow:hidden;white-space:nowrap;text-overflow:ellipsis;text-align:center;
+    font-size:14px;font-weight:700;color:var(--text-hi);
+    background:var(--panel);border-bottom:1px solid var(--hairline);
+  }
+  .video-title-band.show{display:block;}
   /* 帯の高さは中身で決まる（広いと1行、とても狭いとボタンが2行目へ折り返す）。表示/非表示は grid の 0fr↔1fr でなめらかに畳む */
   .caption-hint{
     flex:0 0 auto;display:grid;grid-template-rows:0fr;transition:grid-template-rows .25s ease;
@@ -569,7 +586,14 @@
   }
   .side-head{padding:12px 14px;display:flex;align-items:center;justify-content:space-between;border-bottom:1px solid var(--hairline);}
   .side-head .label{font-size:11px;letter-spacing:.12em;text-transform:uppercase;color:var(--text-lo);font-weight:700;}
-  .count-badge{font-size:12px;color:var(--text-hi);background:var(--panel-2);border:1px solid var(--hairline);padding:3px 10px;border-radius:999px;}
+  /* キャプチャの枚数：数字を大きく、「枚」は小さく。高さは以前と同じ22px（見出しの段の高さを変えない） */
+  .count-badge{
+    display:inline-flex;align-items:baseline;gap:3px;height:22px;
+    color:var(--text-hi);background:var(--panel-2);border:1px solid var(--hairline);padding:0 9px;border-radius:999px;
+    white-space:nowrap;flex:0 0 auto;
+  }
+  .count-badge .cb-num{font-size:18px;line-height:20px;font-weight:700;}
+  .count-badge .cb-unit{font-size:12px;line-height:20px;color:var(--text-lo);font-weight:700;}
 
   .thumb-list{flex:1;overflow-y:auto;padding:12px;display:flex;flex-direction:column-reverse;gap:10px;}
   .thumb-list::-webkit-scrollbar{width:8px;}
@@ -967,6 +991,9 @@
   /* 📌 時刻を記録：幅が足りないときだけ2行に折り返す（文節の切れ目でだけ折る） */
   .bm-actions button .wb{display:inline-block;}
   #bmCaptureBtn{white-space:normal;line-height:1.25;}
+  /* 🎬 区間動画をメモ用にコピー：右パネルの幅(154px)に1行では入らないので、文節の切れ目で2行にする。
+     行の高さと上下の余白を詰めて、ボタンの高さ(33px)は1行のときと同じにする（下のボタンを動かさない） */
+  #bmLinkBtn{white-space:normal;line-height:14.5px;padding-top:2px;padding-bottom:2px;}
 
   /* ハーフ幅のカメラ（960px以上では出さない）。
      再生ボタン(48px)より少し大きい64pxで、赤みのアクセントをはっきりさせて目立たせる。
@@ -1137,10 +1164,10 @@
     <h1>スクショトリマー</h1>
     <span class="ver">PC版 v0.2</span>
   </div>
-  <div class="mode-toggle" id="modeToggle">
-    <button class="mode-tab active" id="modeTabYoutube" data-mode="youtube">YouTube</button>
-    <button class="mode-tab" id="modeTabLocal" data-mode="local">ローカル</button>
-  </div>
+  <!-- ヘッダーの高さを、以前のモード切替ピルと同じに保つための、見えない支え（幅0。開発モードだけ） -->
+  <div class="mode-toggle hdr-sizer" aria-hidden="true"><button class="mode-tab" type="button" tabindex="-1" disabled>ローカル</button></div>
+  <!-- 動画のタイトル（textContent で入れる。長いときは … で切り、全文は title に出す） -->
+  <div class="video-title" id="videoTitle"></div>
   <div class="loadbar">
     <input id="videoInput" type="text" placeholder="YouTube URLまたはIDを貼り付け">
     <button id="loadBtn" class="load-btn">読み込む</button>
@@ -1171,6 +1198,7 @@
 
 <main id="view-watch">
   <div class="video-col">
+  <div class="video-title-band" id="videoTitleBand"></div>
   <div class="caption-hint" id="captionHint" role="note">
     <div class="caption-hint-clip">
       <div class="caption-hint-inner">
@@ -1224,7 +1252,7 @@
     </div>
     <div class="fab-group fab-group-bookmark-aux">
       <div class="bm-actions">
-        <button id="bmLinkBtn" title="チェックした2つのタイムスタンプから、区間つきの再生リンクを作ってコピーします">🔗 区間リンクをコピー</button>
+        <button id="bmLinkBtn" title="区間動画をメモ用にコピー" aria-label="区間動画をメモ用にコピー"><span class="wb">🎬 区間動画を</span><span class="wb">メモ用にコピー</span></button>
       </div>
       <div class="bm-actions">
         <button id="bmChapterBtn" title="動画のチャプター一覧を開きます（start.bat から開いた画面で使えます）">📑 チャプター</button>
@@ -1258,7 +1286,7 @@
   </div>
 
   <div id="morePop" class="more-pop" role="menu" aria-label="その他の操作">
-    <button class="more-pop-item mp-orange" id="moreLink" role="menuitem">🔗 区間リンクをコピー</button>
+    <button class="more-pop-item mp-orange" id="moreLink" role="menuitem" title="区間動画をメモ用にコピー" aria-label="区間動画をメモ用にコピー">🎬 区間動画をメモ用にコピー</button>
     <button class="more-pop-item mp-clear" id="moreClear" role="menuitem" disabled>🗑 時刻をクリア</button>
     <button class="more-pop-item mp-retry" id="moreRetry" role="menuitem" disabled>🔁 別の字幕でやり直す</button>
     <button class="more-pop-item mp-memo" id="moreMemo" role="menuitem">📝 メモを開く</button>
@@ -1267,7 +1295,7 @@
   <div class="side-pane">
     <div class="side-head">
       <span class="label">Captures</span>
-      <span class="count-badge mono" id="countBadge">0 枚</span>
+      <span class="count-badge mono" id="countBadge" aria-label="0 枚"><span class="cb-num" id="countBadgeNum">0</span><span class="cb-unit">枚</span></span>
     </div>
     <div class="thumb-list" id="thumbList">
       <p class="empty-hint">📷ボタン（または <b>C</b> キー）で<b>動画部分だけ</b>を即キャプチャ。<br>初回のみ「このタブ」を共有してください。</p>
@@ -1404,6 +1432,15 @@
         <span class="settings-switch-body">
           <span class="settings-switch-text"><span>整理のあと、</span><span>メモを</span><span>左半分に</span><span>開く</span></span>
           <span class="settings-switch-desc">画像の整理が終わったら、PCスマホ連動メモなどを、画面の左半分に開きます。使わない人は、オフにしてください</span>
+        </span>
+      </label>
+
+      <!-- ローカル動画モード（開発モードだけ。配布モードでは CSS で隠し、JS でも受け付けない） -->
+      <label class="settings-switch" id="localModeSwitch">
+        <input type="checkbox" id="localModeToggle">
+        <span class="settings-switch-body">
+          <span class="settings-switch-text"><span>ローカル動画</span><span>モード</span><span>（開発用）</span></span>
+          <span class="settings-switch-desc">PCの動画ファイルを読み込んで使います。オフにすると、YouTubeに戻ります</span>
         </span>
       </label>
     </div>
@@ -2226,8 +2263,7 @@
   const localFilename = document.getElementById('localFilename');
   const copyFilenameBtn = document.getElementById('copyFilenameBtn');
   let currentLocalFilename = '';
-  const modeTabYoutube = document.getElementById('modeTabYoutube');
-  const modeTabLocal = document.getElementById('modeTabLocal');
+  const localModeToggle = document.getElementById('localModeToggle');
   const videoPane = document.getElementById('videoPane');
   const playerFrame = document.querySelector('.player-frame');
   const youtubeOnlyEls = [
@@ -2265,8 +2301,7 @@
   function switchMode(mode){
     currentMode = mode;
     if(typeof updateCaptionHint === 'function') updateCaptionHint();
-    modeTabYoutube.classList.toggle('active', mode === 'youtube');
-    modeTabLocal.classList.toggle('active', mode === 'local');
+    localModeToggle.checked = (mode === 'local');
     youtubeOnlyEls.forEach(el=>{ if(el) el.classList.toggle('mode-hide', mode !== 'youtube'); });
     localFileBtn.style.display = (mode === 'local') ? '' : 'none';
     const hasLocalFile = (mode === 'local') && !!currentLocalFilename;
@@ -2301,6 +2336,7 @@
     resetBookmarks();
     refreshPlayPauseIcon();
     setStatus('');
+    if(typeof watchVideoTitle === 'function') watchVideoTitle();  // ローカルでは消し、YouTubeに戻ったら出し直す
     if(emptyHint){
       emptyHint.innerHTML = (mode === 'local')
         ? '📷ボタン（または <b>C</b> キー）で<b>動画のフレーム</b>を即キャプチャ。'
@@ -2308,11 +2344,15 @@
     }
   }
 
-  modeTabYoutube.addEventListener('click', ()=>{ if(currentMode !== 'youtube') switchMode('youtube'); });
-  modeTabLocal.addEventListener('click', ()=>{ if(currentMode !== 'local') switchMode('local'); });
-  // 配布モードでは、ローカル動画モードを出さない（ピルは CSS で隠し、切り替えも受け付けない）
+  // ⚙ 設定の「ローカル動画モード（開発用）」で切り替える。切り替えたら設定を閉じて、結果を見せる
+  localModeToggle.addEventListener('change', ()=>{
+    const mode = localModeToggle.checked ? 'local' : 'youtube';
+    if(currentMode !== mode) switchMode(mode);
+    closeSettings();
+  });
+  // 配布モードでは、ローカル動画モードを出さない（切り替えは CSS で隠し、受け付けもしない）
   if(DIST_MODE){
-    modeTabLocal.disabled = true;
+    localModeToggle.disabled = true;
     localFileBtn.style.display = 'none';
   }
 
@@ -2381,7 +2421,9 @@
           // YouTube側でリファラー必須になったため、生成されたiframeにreferrerpolicyを明示的に付与する
           const iframeEl = ev.target.getIframe && ev.target.getIframe();
           if(iframeEl) iframeEl.setAttribute('referrerpolicy', 'strict-origin-when-cross-origin');
+          watchVideoTitle();
         },
+        onStateChange: ()=>{ refreshVideoTitle(); },
         onError: ()=>{ setStatus('動画を読み込めませんでした。URLまたはIDを確認してください。', true); }
       }
     });
@@ -2421,11 +2463,66 @@
     transcriptCache = { videoId: null, byType: {} };
     placeholder.style.display = 'none';
     if(player && player.loadVideoById){ player.loadVideoById(id); }
+    watchVideoTitle();
     resetBookmarks();  // ブックマークは動画単位（切り替えたらリセット）
     maybeOfferChannel(id);
     if(typeof prefetchChapters === 'function') prefetchChapters(id);
     if(typeof updateCaptionHint === 'function') updateCaptionHint();
   }
+
+  // ---------------- 動画のタイトル（ヘッダーの中央） ----------------
+  // プレーヤーの getVideoData() から取る（サーバーは使わない）。HTMLとして解釈させないよう textContent で入れる。
+  // 読み込む前・取れないとき・ローカル動画モードでは、何も出さない
+  const videoTitleEl = document.getElementById('videoTitle');
+  const videoTitleBand = document.getElementById('videoTitleBand');
+  const halfWidthMq = window.matchMedia('(max-width:959px)');
+  let videoTitleTimer = null;
+  let videoTitleText = '';  // いまのタイトルの全文（要約のコピーにも使う）
+  function setVideoTitle(t){
+    videoTitleText = t;
+    videoTitleEl.textContent = t;
+    videoTitleEl.title = t;
+    videoTitleBand.textContent = t;
+    videoTitleBand.title = t;
+    updateTitleBand();
+  }
+  // ヘッダーに出せるときはヘッダー、出せないとき（ハーフ幅で狭い）だけ、動画の上の帯に出す
+  // 動画エリアが低すぎるときは、帯を出さない。判定には「帯が無いときの動画エリアの高さ」を使う
+  // （いま帯が出ていれば、その高さを足し戻す）。出しても消しても、この値は変わらないので、ちらつかない
+  const TITLE_BAND_H = 26;           // CSS の .video-title-band の height と同じ
+  const TITLE_BAND_MIN_VIDEO_H = 200; // 帯を出したあとの動画エリアの高さが、これ未満なら出さない
+  function updateTitleBand(){
+    const tight = videoTitleEl.clientWidth < 60;
+    videoTitleEl.classList.toggle('vt-tight', tight);
+    const paneH = videoPane.getBoundingClientRect().height + (videoTitleBand.classList.contains('show') ? TITLE_BAND_H : 0);
+    const roomy = paneH - TITLE_BAND_H >= TITLE_BAND_MIN_VIDEO_H;
+    videoTitleBand.classList.toggle('show', !!videoTitleText && tight && halfWidthMq.matches && roomy);
+  }
+  // 出せたら（または出さないと決まったら）true
+  function refreshVideoTitle(){
+    if(currentMode !== 'youtube' || !currentVideoId){ setVideoTitle(''); return true; }
+    let d = null;
+    try{ d = player && player.getVideoData && player.getVideoData(); }catch(_){}
+    if(d && d.video_id === currentVideoId && d.title){ setVideoTitle(d.title); return true; }
+    setVideoTitle('');  // 前の動画のタイトルを残さない
+    return false;
+  }
+  // 読み込んだ直後はまだ取れないことがあるので、取れるまで0.5秒ごとに見る（最長20秒）
+  function watchVideoTitle(){
+    clearInterval(videoTitleTimer);
+    if(refreshVideoTitle()) return;
+    let tries = 0;
+    videoTitleTimer = setInterval(()=>{
+      if(refreshVideoTitle() || ++tries >= 40) clearInterval(videoTitleTimer);
+    }, 500);
+  }
+  // 「…」だけになるほど狭いときは、ヘッダーには出さない（基準の幅が0なので、中身の長さで幅は変わらない）
+  if(window.ResizeObserver){
+    const ro = new ResizeObserver(updateTitleBand);
+    ro.observe(videoTitleEl);
+    ro.observe(videoPane);   // 窓の高さが変わったときも見直す
+  }
+  if(halfWidthMq.addEventListener) halfWidthMq.addEventListener('change', updateTitleBand);
 
   // 配布モードだけ、5秒ごとにサーバーへ合図を送る。
   // 画面を全部閉じると合図が止まり、サーバーが自分で終了する（残り続けないように）
@@ -2532,7 +2629,18 @@
   const bmChecks = Array.from(document.querySelectorAll('.bm-check'));
   const bmClearBtn = document.getElementById('bmClearBtn');
   const bmTimes = new Array(bmTimeEls.length).fill(null);
-  let bmNext = 0;  // 次に「取得」で書き込む枠（0→4を巡回）
+  // 記録した順番（古い→新しい）の枠の番号。空の枠は入らない。
+  // 次に書き込む枠は「空き（左から）を先に、空きが無ければ、いちばん古く記録した枠」（pickBookmarkSlot）
+  let bmRecOrder = [];
+  function pickBookmarkSlot(){
+    const empty = bmTimes.findIndex(t=>t === null);
+    return empty >= 0 ? empty : bmRecOrder[0];
+  }
+  function recordBookmark(i, sec){
+    bmTimes[i] = sec;
+    bmRecOrder = bmRecOrder.filter(idx=>idx !== i);
+    bmRecOrder.push(i);
+  }
 
   // 「🗑 時刻をクリア」：チェックも時刻も1つも無いときは押せない
   function updateClearBtn(){
@@ -2554,7 +2662,7 @@
     if(typeof clearSummarizeFlash === 'function') clearSummarizeFlash();
     if(typeof clearSummaryHints === 'function') clearSummaryHints();
     bmTimes.fill(null);
-    bmNext = 0;
+    bmRecOrder = [];
     bmChecks.forEach(c=>{ c.checked = false; });
     bmCheckOrder = [];
     renderBookmarks();
@@ -2569,10 +2677,9 @@
   document.getElementById('bmCaptureBtn').addEventListener('click', ()=>{
     const ap = getActivePlayer();
     if(!ap.ready()) return;
-    const i = bmNext;
-    bmTimes[i] = ap.currentTime();
+    const i = pickBookmarkSlot();
+    recordBookmark(i, ap.currentTime());
     renderBookmarks();
-    bmNext = (bmNext + 1) % bmTimes.length;
     checkBookmark(i);
   });
 
@@ -2838,16 +2945,19 @@
     ap.play();
   }
 
-  // 章の「開始」「終了」を取得枠に入れて、2つともチェック（既存の時刻・チェックはこの2つで置き換える）
+  // 章の「開始」「終了」を、空いている枠に左から入れる（空きが足りなければ、いちばん古く記録した枠を上書き）。
+  // ほかの枠の時刻は残す。チェックは章の2つだけに付け直す（並びが時刻の順でなくても、使う側は小さい方を開始とする）
   function takeChapter(data, c){
     const endSec = c.end > c.start ? c.end : (data.duration || c.start);
-    resetBookmarks();
-    bmTimes[0] = c.start;
-    bmTimes[1] = endSec;
-    bmNext = 2;
+    const s = pickBookmarkSlot();
+    recordBookmark(s, c.start);
+    const e = pickBookmarkSlot();   // s はいちばん新しくなったので、選ばれない
+    recordBookmark(e, endSec);
     renderBookmarks();
-    checkBookmark(0);
-    checkBookmark(1);
+    bmChecks.forEach(cb=>{ cb.checked = false; });
+    bmCheckOrder = [];
+    checkBookmark(s);
+    checkBookmark(e);
     closeChapterPop();
     showToast('チャプター「' + c.title + '」の時刻を記録しました（' + fmtTime(c.start) + '〜' + fmtTime(endSec) + '）');
   }
@@ -2968,7 +3078,8 @@
     chapNowBoxes.forEach(b=>{ b.hidden = false; });
   }
 
-  // 区間リンクをコピー：チェックした2点（早い方=開始・遅い方=終了）から t=&end= 付きのYouTubeリンクを作る
+  // 🎬 区間動画をメモ用にコピー：チェックした2点（早い方=開始・遅い方=終了）から t=&end= 付きのYouTubeリンクを作る。
+  // メモ（crossmemo.web.app）に貼ると、その区間だけが再生される
   document.getElementById('bmLinkBtn').addEventListener('click', async ()=>{
     if(currentMode === 'local'){
       showToast('この機能はYouTube動画のときだけ使えます');
@@ -2982,7 +3093,7 @@
       .map((c,i)=> c.checked ? bmTimes[i] : null)
       .filter(t=> t !== null && t !== undefined);
     if(checkedTimes.length !== 2){
-      showToast('タイムスタンプを2つチェックしてください');
+      showToast('区間動画にする時刻を、2つチェックしてください');
       return;
     }
     const startSec = Math.floor(Math.min(...checkedTimes));
@@ -2990,9 +3101,9 @@
     const url = 'https://youtu.be/' + currentVideoId + '?t=' + startSec + '&end=' + endSec;
     try{
       await navigator.clipboard.writeText(url);
-      showToast('区間リンクをコピーしました（' + fmtTime(startSec) + '〜' + fmtTime(endSec) + '）');
+      showToast('区間動画のリンクをコピーしました。メモに貼り付けてください（Ctrl+V）', 4000);
     }catch(e){
-      showToast('コピーに失敗しました', true);
+      showToast('区間動画のリンクを、コピーできませんでした', 4000);
     }
   });
 
@@ -3144,6 +3255,7 @@
   const flash = document.getElementById('flash');
   const thumbList = document.getElementById('thumbList');
   const countBadge = document.getElementById('countBadge');
+  const countBadgeNum = document.getElementById('countBadgeNum');
   const organizeBtn = document.getElementById('organizeBtn');
   let emptyHint = thumbList.querySelector('.empty-hint');
 
@@ -3263,7 +3375,8 @@
         '<button class="del" data-i="'+i+'" title="削除" aria-label="削除">✕</button>';
       thumbList.appendChild(div);
     });
-    countBadge.textContent = shots.length + ' 枚';
+    countBadgeNum.textContent = shots.length;
+    countBadge.setAttribute('aria-label', shots.length + ' 枚');
     organizeBtn.disabled = shots.length === 0;
   }
 
@@ -3867,6 +3980,21 @@
     return entry;
   }
 
+  // コピーする要約の先頭に、動画のタイトル（全文）と区間を入れる（メモに貼ったとき、どの動画の要約か分かるように）。
+  //   【動画】タイトル
+  //   区間：1:44〜3:20   … 要約の中に、同じ区間の書き方が、すでにあるときは入れない
+  //   （空行）
+  //   要約
+  // タイトルが取れていないときは、何も足さない（今までの要約だけ）
+  function withVideoHeading(summary, startSec, endSec){
+    const title = (currentMode === 'youtube' && videoTitleText) ? videoTitleText : '';
+    if(!title) return summary;
+    const range = fmtTime(startSec) + '〜' + fmtTime(endSec);
+    const lines = ['【動画】' + title];
+    if(summary.indexOf(range) < 0) lines.push('区間：' + range);
+    return lines.join('\n') + '\n\n' + summary;
+  }
+
   // 要約の本体。「✨ 区間内の要約」と「🔁 別の字幕でやり直す」で共用する。
   // requireDifferentFrom を渡すと、その種類がまた返ってきたときは「別の種類が無い」と案内して終わる
   async function runSummarize(startSec, endSec, mode, prefer, requireDifferentFrom){
@@ -3906,7 +4034,8 @@
       }
 
       summarizeBtn.textContent = '要約中…';
-      const { text: summary, truncated } = await callClaudeForSummary(extracted, startSec, endSec, mode);
+      const { text: rawSummary, truncated } = await callClaudeForSummary(extracted, startSec, endSec, mode);
+      const summary = withVideoHeading(rawSummary, startSec, endSec);
       let autoCopied = false;
       try{ await navigator.clipboard.writeText(summary); autoCopied = true; }catch(e){}
       if(autoCopied){
@@ -3965,7 +4094,7 @@
       return;
     }
     if(!getAnthropicKey()){
-      showToast('Anthropic APIキーを設定してください', true);
+      showToast('Anthropic APIキーを設定してください', 4000);
       openSettings('anthropic');  // メニューを経由せず、要約の設定を直接開く
       return;
     }
