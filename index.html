@@ -1102,19 +1102,21 @@
     }
     .more-btn.has-dot .more-dot{display:block;}
     /* 右列: 再生まわり（左の段数にかかわらず、ここだけが高さを決める）。
-       左に「10秒進む／10秒戻る」(縦2段)、右に「再生」(上)と「カメラ」(下) */
+       左上「再生」、右上「10秒進む」、左下「10秒戻る」、右下「カメラ」 */
     .fab-group-playback{grid-column:2;grid-row:1 / 5;margin-top:0;}
     .playback-controls{
       display:grid;
       grid-template-columns:auto auto;
       grid-template-areas:
-        "skip play"
-        "skip cam";
+        "play fwd"
+        "back cam";
       align-items:center;justify-items:center;
       gap:6px 8px;
     }
-    .playback-controls .skip-col{grid-area:skip;}
+    .playback-controls .skip-col{display:contents;}
     .playback-controls #playPauseBtn{grid-area:play;}
+    .playback-controls #fwd10Btn{grid-area:fwd;}
+    .playback-controls #back10Btn{grid-area:back;}
     .playback-controls .hw-shutter{grid-area:cam;}
     /* 左列 2段目: 時刻を記録・ジャンプ */
     .fab-group-bookmark{grid-column:1;grid-row:2;}
