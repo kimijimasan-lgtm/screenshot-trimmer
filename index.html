@@ -2632,6 +2632,8 @@
   // 記録した順番（古い→新しい）の枠の番号。空の枠は入らない。
   // 次に書き込む枠は「空き（左から）を先に、空きが無ければ、いちばん古く記録した枠」（pickBookmarkSlot）
   let bmRecOrder = [];
+  // 「⏩ ジャンプ」で最後に移った枠の番号（-1 は、まだ移っていない。次は1つ目から）
+  let bmJumpLast = -1;
   function pickBookmarkSlot(){
     const empty = bmTimes.findIndex(t=>t === null);
     return empty >= 0 ? empty : bmRecOrder[0];
@@ -2663,6 +2665,7 @@
     if(typeof clearSummaryHints === 'function') clearSummaryHints();
     bmTimes.fill(null);
     bmRecOrder = [];
+    bmJumpLast = -1;
     bmChecks.forEach(c=>{ c.checked = false; });
     bmCheckOrder = [];
     renderBookmarks();
@@ -2804,11 +2807,17 @@
   });
 
   document.getElementById('bmJumpBtn').addEventListener('click', ()=>{
-    const checked = bmChecks.map((c,i)=>c.checked ? i : -1).filter(i=>i >= 0 && bmTimes[i] !== null);
-    if(checked.length === 0) return;
-    const target = Math.min(...checked.map(i=>bmTimes[i]));
+    // 最後に移った枠の次から、枠の並びの順に見て、時刻が入っている枠へ移る（チェックとは関係ない）
+    const n = bmTimes.length;
+    let target = -1;
+    for(let step = 1; step <= n; step++){
+      const i = (bmJumpLast + step) % n;
+      if(bmTimes[i] !== null){ target = i; break; }
+    }
+    if(target < 0) return;
+    bmJumpLast = target;
     const ap = getActivePlayer();
-    ap.seekTo(target);
+    ap.seekTo(bmTimes[target]);
     ap.play();
   });
 
